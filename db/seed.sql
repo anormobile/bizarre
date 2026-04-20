@@ -1,1 +1,1 @@
-INSERT INTO _baseline DEFAULT VALUES ON CONFLICT DO NOTHING;
+-- seed data loaded after schema
