@@ -61,14 +61,7 @@ app.prepare().then(() => {
     rooms.clear();
 
     server.close(() => {
-      const postgres = require("postgres");
-      const sql = require("./lib/db");
-      Promise.resolve()
-        .then(() => {
-          if (sql && typeof sql.end === "function") return sql.end();
-        })
-        .catch(() => {})
-        .finally(() => process.exit(0));
+      process.exit(0);
     });
   }
 
