@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import sql from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { LogoutButton } from "@/components/LogoutButton";
+import { WsStatus } from "@/components/WsStatus";
 import type { SessionRow } from "@/lib/types";
 
 export default async function Home() {
@@ -28,6 +29,7 @@ export default async function Home() {
         Signed in as <span className="font-semibold">@{user.username}</span>
       </p>
       <LogoutButton />
+      <WsStatus />
     </div>
   );
 }

@@ -1,4 +1,15 @@
-export type WsMessage = { type: "PING"; payload: { ts: number } };
+export interface WsMessageBase<T extends string, P> {
+  type: T;
+  payload: P;
+  timestamp: number;
+}
+
+export type BroadcastTestMessage = WsMessageBase<
+  "BROADCAST_TEST",
+  { text: string }
+>;
+
+export type WsMessage = BroadcastTestMessage;
 
 export interface SessionRow {
   id: string;

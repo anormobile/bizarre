@@ -1,5 +1,34 @@
 import type { WsMessage } from "@/lib/types";
 
-export function broadcast(_roomId: string, _msg: WsMessage) {
-  /* no-op stub */
+type WsLike = { readyState: number; send: (data: string) => void };
+
+const OPEN = 1;
+
+declare global {
+  // eslint-disable-next-line no-var
+  var __bizarreWsConnections__: Map<string, Set<WsLike>> | undefined;
+}
+
+export function broadcast(userIds: string[], msg: WsMessage): number {
+  const map = globalThis.__bizarreWsConnections__;
+  if (!map) return 0;
+
+  const json = JSON.stringify(msg);
+  let count = 0;
+
+  for (const uid of userIds) {
+    const sockets = map.get(uid);
+    if (!sockets) continue;
+    for (const ws of sockets) {
+      if (ws.readyState !== OPEN) continue;
+      try {
+        ws.send(json);
+        count++;
+      } catch {
+        /* swallow per-socket errors */
+      }
+    }
+  }
+
+  return count;
 }

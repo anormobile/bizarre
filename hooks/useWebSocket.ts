@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import type { WsMessage } from "@/lib/types";
 
 const MAX_BACKOFF_MS = 10_000;
@@ -8,12 +8,13 @@ const MAX_BACKOFF_MS = 10_000;
 export function useWebSocket(
   url: string,
   onMessage: (msg: WsMessage) => void,
-) {
+): "connecting" | "connected" {
   const wsRef = useRef<WebSocket | null>(null);
   const backoffRef = useRef(1_000);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onMessageRef = useRef(onMessage);
   onMessageRef.current = onMessage;
+  const [connected, setConnected] = useState(false);
 
   const connect = useCallback(() => {
     const ws = new WebSocket(url);
@@ -21,6 +22,7 @@ export function useWebSocket(
 
     ws.onopen = () => {
       backoffRef.current = 1_000;
+      setConnected(true);
     };
 
     ws.onmessage = (event) => {
@@ -33,6 +35,7 @@ export function useWebSocket(
     };
 
     ws.onclose = () => {
+      setConnected(false);
       timerRef.current = setTimeout(() => {
         backoffRef.current = Math.min(backoffRef.current * 2, MAX_BACKOFF_MS);
         connect();
@@ -48,4 +51,6 @@ export function useWebSocket(
       wsRef.current?.close();
     };
   }, [connect]);
+
+  return connected ? "connected" : "connecting";
 }

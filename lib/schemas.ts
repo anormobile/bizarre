@@ -22,3 +22,7 @@ export const loginInputSchema = z.object({
   emailOrUsername: z.string().min(1, "emailOrUsername is required"),
   password: z.string().min(1, "password is required"),
 });
+
+export const broadcastTestInputSchema = z.object({
+  text: z.string().min(1).max(200),
+});
