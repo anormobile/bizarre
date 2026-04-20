@@ -1,5 +1,7 @@
 # bizarre
 
+## What
+
 Hackathon baseline: Next.js 16, Tailwind v4, shadcn/ui, PostgreSQL 18, WebSocket.
 
 ## Run
