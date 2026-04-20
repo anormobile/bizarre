@@ -1,120 +1,31 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { useWebSocket } from "@/hooks/useWebSocket";
 import { RoomItem } from "@/components/rooms/RoomItem";
 import { CreateRoomModal } from "@/components/rooms/CreateRoomModal";
 import { PublicRoomsModal } from "@/components/rooms/PublicRoomsModal";
-import type { RoomSummary, WsMessage } from "@/lib/types";
+import type { RoomSummary } from "@/lib/types";
 
 interface SidebarProps {
-  initialMine: RoomSummary[];
+  mine: RoomSummary[];
+  selectedRoomId: number | null;
+  onSelect: (roomId: number) => void;
   currentUserId: string;
+  onMineChange: (next: RoomSummary[]) => void;
 }
 
-export function Sidebar({ initialMine, currentUserId }: SidebarProps) {
-  const [mine, setMine] = useState<RoomSummary[]>(initialMine);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-
-  const onMessage = useCallback(
-    (msg: WsMessage) => {
-      switch (msg.type) {
-        case "ROOM_UPDATED": {
-          const { roomId, name, description, visibility } = msg.payload;
-          setMine((prev) => {
-            const existing = prev.find((r) => r.id === roomId);
-            if (existing) {
-              return prev.map((r) =>
-                r.id === roomId ? { ...r, name, description, visibility } : r,
-              );
-            }
-            fetch(`/api/rooms/${roomId}`)
-              .then((res) => (res.ok ? res.json() : null))
-              .then((data) => {
-                if (data?.room) {
-                  setMine((p) => {
-                    if (p.some((r) => r.id === roomId)) return p;
-                    return [data.room as RoomSummary, ...p];
-                  });
-                }
-              })
-              .catch(() => {});
-            return prev;
-          });
-          break;
-        }
-        case "MEMBER_JOINED": {
-          const { roomId, userId } = msg.payload;
-          if (userId === currentUserId) {
-            setMine((prev) => {
-              if (prev.some((r) => r.id === roomId)) return prev;
-              fetch(`/api/rooms/${roomId}`)
-                .then((res) => (res.ok ? res.json() : null))
-                .then((data) => {
-                  if (data?.room) {
-                    setMine((p) => {
-                      if (p.some((r) => r.id === roomId)) return p;
-                      return [data.room as RoomSummary, ...p];
-                    });
-                  }
-                })
-                .catch(() => {});
-              return prev;
-            });
-          } else {
-            setMine((prev) =>
-              prev.map((r) =>
-                r.id === roomId ? { ...r, memberCount: r.memberCount + 1 } : r,
-              ),
-            );
-          }
-          break;
-        }
-        case "MEMBER_LEFT": {
-          const { roomId, userId } = msg.payload;
-          if (userId === currentUserId) {
-            setMine((prev) => prev.filter((r) => r.id !== roomId));
-          } else {
-            setMine((prev) =>
-              prev.map((r) =>
-                r.id === roomId
-                  ? { ...r, memberCount: Math.max(0, r.memberCount - 1) }
-                  : r,
-              ),
-            );
-          }
-          break;
-        }
-        case "ROOM_DELETED": {
-          const { roomId } = msg.payload;
-          setMine((prev) => prev.filter((r) => r.id !== roomId));
-          break;
-        }
-      }
-    },
-    [currentUserId],
-  );
-
-  const proto =
-    typeof window !== "undefined" && window.location.protocol === "https:"
-      ? "wss:"
-      : "ws:";
-  const host =
-    typeof window !== "undefined" ? window.location.host : "localhost:3000";
-  useWebSocket(`${proto}//${host}/ws`, onMessage);
-
+export function Sidebar({ mine, selectedRoomId, onSelect, onMineChange }: SidebarProps) {
   function handleCreated(room: RoomSummary) {
-    setMine((prev) => {
-      if (prev.some((r) => r.id === room.id)) return prev;
-      return [room, ...prev];
-    });
+    onMineChange(
+      mine.some((r) => r.id === room.id) ? mine : [room, ...mine],
+    );
   }
 
   function handleJoined(room: RoomSummary) {
-    setMine((prev) => {
-      if (prev.some((r) => r.id === room.id)) return prev;
-      return [{ ...room, memberCount: room.memberCount + 1 }, ...prev];
-    });
+    onMineChange(
+      mine.some((r) => r.id === room.id)
+        ? mine
+        : [{ ...room, memberCount: room.memberCount + 1 }, ...mine],
+    );
   }
 
   return (
@@ -133,8 +44,8 @@ export function Sidebar({ initialMine, currentUserId }: SidebarProps) {
           <RoomItem
             key={room.id}
             room={room}
-            selected={selectedId === room.id}
-            onSelect={(r) => setSelectedId(r.id)}
+            selected={selectedRoomId === room.id}
+            onSelect={(r) => onSelect(r.id)}
           />
         ))}
       </nav>

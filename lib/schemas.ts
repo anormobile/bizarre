@@ -32,3 +32,17 @@ export const createRoomInputSchema = z.object({
   description: z.string().max(256).optional(),
   visibility: z.enum(["public", "private"]),
 });
+
+export const sendMessageInputSchema = z.object({
+  roomId: z.number().int().positive(),
+  content: z.string().min(1).max(3072),
+});
+
+export const editMessageInputSchema = z.object({
+  content: z.string().min(1).max(3072),
+});
+
+export const listMessagesQuerySchema = z.object({
+  before: z.coerce.number().int().positive().optional(),
+  limit: z.coerce.number().int().positive().max(100).default(50),
+});

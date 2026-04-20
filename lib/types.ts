@@ -29,12 +29,30 @@ export type RoomDeletedMessage = WsMessageBase<
   { roomId: number }
 >;
 
+export type MessageNewMessage = WsMessageBase<
+  "MESSAGE_NEW",
+  { roomId: number; message: MessageView }
+>;
+
+export type MessageEditedMessage = WsMessageBase<
+  "MESSAGE_EDITED",
+  { roomId: number; messageId: number; content: string; editedAt: string }
+>;
+
+export type MessageDeletedMessage = WsMessageBase<
+  "MESSAGE_DELETED",
+  { roomId: number; messageId: number }
+>;
+
 export type WsMessage =
   | BroadcastTestMessage
   | MemberJoinedMessage
   | MemberLeftMessage
   | RoomUpdatedMessage
-  | RoomDeletedMessage;
+  | RoomDeletedMessage
+  | MessageNewMessage
+  | MessageEditedMessage
+  | MessageDeletedMessage;
 
 export interface SessionRow {
   id: string;
@@ -77,6 +95,30 @@ export interface RoomMemberRow {
   user_id: string;
   role: "owner" | "admin" | "member";
   joined_at: Date;
+}
+
+export interface MessageRow {
+  id: number;
+  room_id: number | null;
+  dm_id: number | null;
+  user_id: string;
+  content: string;
+  reply_to_id: number | null;
+  edited_at: Date | null;
+  deleted_at: Date | null;
+  created_at: Date;
+}
+
+export interface MessageView {
+  id: number;
+  roomId: number | null;
+  dmId: number | null;
+  userId: string;
+  username: string;
+  content: string;
+  createdAt: string;
+  editedAt: string | null;
+  deletedAt: string | null;
 }
 
 export interface RoomSummary {

@@ -3,7 +3,7 @@ import sql from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { LogoutButton } from "@/components/LogoutButton";
 import { WsStatus } from "@/components/WsStatus";
-import { Sidebar } from "@/components/rooms/Sidebar";
+import { Shell } from "@/components/Shell";
 import type { SessionRow, RoomSummary } from "@/lib/types";
 
 export default async function Home() {
@@ -48,15 +48,7 @@ export default async function Home() {
         </div>
         <LogoutButton />
       </header>
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar initialMine={mine} currentUserId={session.user_id} />
-        <main className="flex flex-1 items-center justify-center p-6">
-          <div className="text-center text-muted-foreground">
-            <p className="text-lg font-medium">Select a room to view messages.</p>
-            <p className="mt-1 text-sm">Messaging lands in Phase 5.</p>
-          </div>
-        </main>
-      </div>
+      <Shell initialMine={mine} currentUserId={session.user_id} currentUsername={user.username} />
     </div>
   );
 }
