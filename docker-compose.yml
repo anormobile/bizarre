@@ -16,14 +16,20 @@ services:
 
   db:
     image: postgres:18-alpine
+    shm_size: '256mb'
+    restart: on-failure
     environment:
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=chat
     volumes:
-      - ./db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
-      - ./db/seed.sql:/docker-entrypoint-initdb.d/02_seed.sql
+      - pgdata:/var/lib/postgresql/18/docker
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./db/seed.sql:/docker-entrypoint-initdb.d/02_seed.sql:ro
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "postgres"]
       interval: 5s
       retries: 5
       start_period: 10s
+
+volumes:
+  pgdata:
