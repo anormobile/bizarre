@@ -1,13 +1,16 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
+import type { MessageView } from "@/lib/types";
 
 interface MessageInputProps {
-  roomId: number;
-  onSent?: () => void;
+  roomId?: number;
+  dmId?: number;
+  dmUserId?: string;
+  onSent?: (message: MessageView) => void;
 }
 
-export function MessageInput({ roomId, onSent }: MessageInputProps) {
+export function MessageInput({ roomId, dmId, dmUserId, onSent }: MessageInputProps) {
   const [content, setContent] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,16 +23,26 @@ export function MessageInput({ roomId, onSent }: MessageInputProps) {
     setSending(true);
     setError(null);
 
+    let payload: Record<string, unknown>;
+    if (roomId) {
+      payload = { roomId, content: trimmed };
+    } else if (dmId) {
+      payload = { dmId, content: trimmed };
+    } else {
+      payload = { userId: dmUserId, content: trimmed };
+    }
+
     try {
       const res = await fetch("/api/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ roomId, content: trimmed }),
+        body: JSON.stringify(payload),
       });
 
       if (res.status === 201) {
+        const data = await res.json();
         setContent("");
-        onSent?.();
+        onSent?.(data.message as MessageView);
       } else {
         const data = await res.json().catch(() => ({ error: "request failed" }));
         setError(data.error ?? "request failed");
@@ -40,7 +53,7 @@ export function MessageInput({ roomId, onSent }: MessageInputProps) {
       setSending(false);
       textareaRef.current?.focus();
     }
-  }, [content, roomId, sending, onSent]);
+  }, [content, roomId, dmId, dmUserId, sending, onSent]);
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {

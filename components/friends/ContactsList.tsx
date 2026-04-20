@@ -5,10 +5,12 @@ import type { FriendView } from "@/lib/types";
 
 interface ContactsListProps {
   friends: FriendView[];
+  selectedUserId: string | null;
+  onSelect: (userId: string) => void;
   onRemove: (userId: string) => void;
 }
 
-export function ContactsList({ friends, onRemove }: ContactsListProps) {
+export function ContactsList({ friends, selectedUserId, onSelect, onRemove }: ContactsListProps) {
   if (friends.length === 0) {
     return (
       <p className="px-3 py-2 text-xs text-muted-foreground">No contacts yet</p>
@@ -18,7 +20,13 @@ export function ContactsList({ friends, onRemove }: ContactsListProps) {
   return (
     <div className="flex flex-col gap-0.5">
       {friends.map((f) => (
-        <ContactItem key={f.userId} friend={f} onRemove={onRemove} />
+        <ContactItem
+          key={f.userId}
+          friend={f}
+          selected={selectedUserId === f.userId}
+          onSelect={onSelect}
+          onRemove={onRemove}
+        />
       ))}
     </div>
   );

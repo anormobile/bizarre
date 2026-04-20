@@ -2,7 +2,7 @@ import sql from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { editMessageInputSchema } from "@/lib/schemas";
 import { broadcast } from "@/lib/websocket";
-import type { SessionRow, MessageRow, MessageView } from "@/lib/types";
+import type { SessionRow, MessageRow, MessageView, DmRow } from "@/lib/types";
 
 async function authenticate(): Promise<SessionRow | null> {
   return getSession(async (tokenHash) => {
@@ -83,18 +83,33 @@ export async function PATCH(
     deletedAt: null,
   };
 
-  const roomId = row.room_id!;
-  const memberIds = await sql<{ user_id: string }[]>`
-    SELECT user_id FROM room_members WHERE room_id = ${roomId}
-  `;
-  broadcast(
-    memberIds.map((m) => m.user_id),
-    {
-      type: "MESSAGE_EDITED",
-      payload: { roomId, messageId, content: row.content, editedAt: view.editedAt! },
-      timestamp: Date.now(),
-    },
-  );
+  if (row.dm_id !== null) {
+    const dmRows = await sql<DmRow[]>`
+      SELECT id, user_a, user_b, created_at FROM dms WHERE id = ${row.dm_id}
+    `;
+    const dm = dmRows[0]!;
+    broadcast(
+      [dm.user_a, dm.user_b],
+      {
+        type: "MESSAGE_EDITED",
+        payload: { dmId: dm.id, messageId, content: row.content, editedAt: view.editedAt! },
+        timestamp: Date.now(),
+      },
+    );
+  } else {
+    const roomId = row.room_id!;
+    const memberIds = await sql<{ user_id: string }[]>`
+      SELECT user_id FROM room_members WHERE room_id = ${roomId}
+    `;
+    broadcast(
+      memberIds.map((m) => m.user_id),
+      {
+        type: "MESSAGE_EDITED",
+        payload: { roomId, messageId, content: row.content, editedAt: view.editedAt! },
+        timestamp: Date.now(),
+      },
+    );
+  }
 
   return Response.json({ message: view });
 }
@@ -130,14 +145,25 @@ export async function DELETE(
     RETURNING *
   `;
 
-  const roomId = msg.room_id!;
-  const memberIds = await sql<{ user_id: string }[]>`
-    SELECT user_id FROM room_members WHERE room_id = ${roomId}
-  `;
-  broadcast(
-    memberIds.map((m) => m.user_id),
-    { type: "MESSAGE_DELETED", payload: { roomId, messageId }, timestamp: Date.now() },
-  );
+  if (msg.dm_id !== null) {
+    const dmRows = await sql<DmRow[]>`
+      SELECT id, user_a, user_b, created_at FROM dms WHERE id = ${msg.dm_id}
+    `;
+    const dm = dmRows[0]!;
+    broadcast(
+      [dm.user_a, dm.user_b],
+      { type: "MESSAGE_DELETED", payload: { dmId: dm.id, messageId }, timestamp: Date.now() },
+    );
+  } else {
+    const roomId = msg.room_id!;
+    const memberIds = await sql<{ user_id: string }[]>`
+      SELECT user_id FROM room_members WHERE room_id = ${roomId}
+    `;
+    broadcast(
+      memberIds.map((m) => m.user_id),
+      { type: "MESSAGE_DELETED", payload: { roomId, messageId }, timestamp: Date.now() },
+    );
+  }
 
   return Response.json({ ok: true });
 }

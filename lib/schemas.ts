@@ -33,10 +33,18 @@ export const createRoomInputSchema = z.object({
   visibility: z.enum(["public", "private"]),
 });
 
-export const sendMessageInputSchema = z.object({
-  roomId: z.number().int().positive(),
-  content: z.string().min(1).max(3072),
-});
+export const sendMessageInputSchema = z
+  .object({
+    roomId: z.number().int().positive().optional(),
+    dmId: z.number().int().positive().optional(),
+    userId: z.string().uuid().optional(),
+    content: z.string().min(1).max(3072),
+  })
+  .refine(
+    (v) =>
+      (v.roomId ? 1 : 0) + (v.dmId ? 1 : 0) + (v.userId ? 1 : 0) === 1,
+    { message: "exactly one of roomId, dmId, userId required" },
+  );
 
 export const editMessageInputSchema = z.object({
   content: z.string().min(1).max(3072),
@@ -58,4 +66,13 @@ export const sendFriendRequestInputSchema = z.object({
 
 export const userIdParamSchema = z.object({
   id: z.string().uuid(),
+});
+
+export const dmPathParamSchema = z.object({
+  userId: z.string().uuid(),
+});
+
+export const listDmMessagesQuerySchema = z.object({
+  before: z.coerce.number().int().positive().optional(),
+  limit: z.coerce.number().int().positive().max(100).default(50),
 });

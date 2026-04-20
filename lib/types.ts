@@ -31,17 +31,20 @@ export type RoomDeletedMessage = WsMessageBase<
 
 export type MessageNewMessage = WsMessageBase<
   "MESSAGE_NEW",
-  { roomId: number; message: MessageView }
+  | { roomId: number; dmId?: undefined; message: MessageView }
+  | { dmId: number; roomId?: undefined; message: MessageView }
 >;
 
 export type MessageEditedMessage = WsMessageBase<
   "MESSAGE_EDITED",
-  { roomId: number; messageId: number; content: string; editedAt: string }
+  | { roomId: number; dmId?: undefined; messageId: number; content: string; editedAt: string }
+  | { dmId: number; roomId?: undefined; messageId: number; content: string; editedAt: string }
 >;
 
 export type MessageDeletedMessage = WsMessageBase<
   "MESSAGE_DELETED",
-  { roomId: number; messageId: number }
+  | { roomId: number; dmId?: undefined; messageId: number }
+  | { dmId: number; roomId?: undefined; messageId: number }
 >;
 
 export type FriendRequestReceivedMessage = WsMessageBase<
@@ -54,6 +57,11 @@ export type FriendRequestAcceptedMessage = WsMessageBase<
   { userId: string; username: string }
 >;
 
+export type FriendRequestDeclinedMessage = WsMessageBase<
+  "FRIEND_REQUEST_DECLINED",
+  { userId: string }
+>;
+
 export type WsMessage =
   | BroadcastTestMessage
   | MemberJoinedMessage
@@ -64,7 +72,8 @@ export type WsMessage =
   | MessageEditedMessage
   | MessageDeletedMessage
   | FriendRequestReceivedMessage
-  | FriendRequestAcceptedMessage;
+  | FriendRequestAcceptedMessage
+  | FriendRequestDeclinedMessage;
 
 export interface SessionRow {
   id: string;
@@ -169,4 +178,19 @@ export interface FriendRequestView {
   username: string;
   note: string | null;
   createdAt: string;
+}
+
+export interface DmRow {
+  id: number;
+  user_a: string;
+  user_b: string;
+  created_at: Date;
+}
+
+export interface DmThreadView {
+  dmId: number;
+  userId: string;
+  username: string;
+  lastMessage: MessageView | null;
+  lastActivityAt: string;
 }

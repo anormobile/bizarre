@@ -20,6 +20,8 @@ interface SidebarProps {
   onFriendsChange: (next: FriendView[]) => void;
   onIncomingChange: (next: FriendRequestView[]) => void;
   onOutgoingChange: (next: FriendRequestView[]) => void;
+  selectedDmUserId: string | null;
+  onSelectDm: (userId: string) => void;
 }
 
 export function Sidebar({
@@ -33,6 +35,8 @@ export function Sidebar({
   onFriendsChange,
   onIncomingChange,
   onOutgoingChange,
+  selectedDmUserId,
+  onSelectDm,
 }: SidebarProps) {
   function handleCreated(room: RoomSummary) {
     onMineChange(
@@ -117,7 +121,7 @@ export function Sidebar({
             onCancelledOutgoing={handleCancelledOutgoing}
           />
         </div>
-        <ContactsList friends={friends} onRemove={handleRemoveFriend} />
+        <ContactsList friends={friends} selectedUserId={selectedDmUserId} onSelect={onSelectDm} onRemove={handleRemoveFriend} />
       </div>
     </aside>
   );

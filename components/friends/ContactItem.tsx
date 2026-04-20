@@ -6,14 +6,17 @@ import type { FriendView } from "@/lib/types";
 
 interface ContactItemProps {
   friend: FriendView;
+  selected: boolean;
+  onSelect: (userId: string) => void;
   onRemove: (userId: string) => void;
 }
 
-export function ContactItem({ friend, onRemove }: ContactItemProps) {
+export function ContactItem({ friend, selected, onSelect, onRemove }: ContactItemProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  async function handleRemove() {
+  async function handleRemove(e: React.MouseEvent) {
+    e.stopPropagation();
     setLoading(true);
     setError("");
     try {
@@ -34,7 +37,13 @@ export function ContactItem({ friend, onRemove }: ContactItemProps) {
   }
 
   return (
-    <div className="group flex items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-muted/50">
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => onSelect(friend.userId)}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onSelect(friend.userId); }}
+      className={`group flex cursor-pointer items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-muted/50 ${selected ? "bg-accent" : ""}`}
+    >
       <span className="truncate font-medium">@{friend.username}</span>
       <div className="flex items-center gap-1">
         {error && <span className="text-[11px] text-destructive">{error}</span>}

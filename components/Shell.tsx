@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { Sidebar } from "@/components/rooms/Sidebar";
 import { ChatArea } from "@/components/chat/ChatArea";
+import { DmChatArea } from "@/components/chat/DmChatArea";
 import type { EventBus } from "@/components/chat/ChatArea";
 import type { RoomSummary, WsMessage, FriendView, FriendRequestView } from "@/lib/types";
 
@@ -16,6 +17,7 @@ interface ShellProps {
 export function Shell({ initialMine, currentUserId, currentUsername }: ShellProps) {
   const [mine, setMine] = useState<RoomSummary[]>(initialMine);
   const [selectedRoomId, setSelectedRoomId] = useState<number | null>(null);
+  const [selectedDmUserId, setSelectedDmUserId] = useState<string | null>(null);
 
   const [friends, setFriends] = useState<FriendView[]>([]);
   const [incoming, setIncoming] = useState<FriendRequestView[]>([]);
@@ -141,6 +143,11 @@ export function Shell({ initialMine, currentUserId, currentUsername }: ShellProp
           });
           break;
         }
+        case "FRIEND_REQUEST_DECLINED": {
+          const { userId } = msg.payload;
+          setOutgoing((prev) => prev.filter((r) => r.userId !== userId));
+          break;
+        }
       }
 
       for (const cb of subscribersRef.current) {
@@ -158,14 +165,25 @@ export function Shell({ initialMine, currentUserId, currentUsername }: ShellProp
     typeof window !== "undefined" ? window.location.host : "localhost:3000";
   useWebSocket(`${proto}//${host}/ws`, onMessage);
 
+  const handleSelectRoom = useCallback((roomId: number) => {
+    setSelectedRoomId(roomId);
+    setSelectedDmUserId(null);
+  }, []);
+
+  const handleSelectDm = useCallback((userId: string) => {
+    setSelectedDmUserId(userId);
+    setSelectedRoomId(null);
+  }, []);
+
   const selectedRoom = mine.find((r) => r.id === selectedRoomId) ?? null;
+  const selectedFriend = friends.find((f) => f.userId === selectedDmUserId) ?? null;
 
   return (
     <div className="flex flex-1 overflow-hidden">
       <Sidebar
         mine={mine}
         selectedRoomId={selectedRoomId}
-        onSelect={setSelectedRoomId}
+        onSelect={handleSelectRoom}
         currentUserId={currentUserId}
         onMineChange={setMine}
         friends={friends}
@@ -174,6 +192,8 @@ export function Shell({ initialMine, currentUserId, currentUsername }: ShellProp
         onFriendsChange={setFriends}
         onIncomingChange={setIncoming}
         onOutgoingChange={setOutgoing}
+        selectedDmUserId={selectedDmUserId}
+        onSelectDm={handleSelectDm}
       />
       {selectedRoom ? (
         <ChatArea
@@ -182,10 +202,17 @@ export function Shell({ initialMine, currentUserId, currentUsername }: ShellProp
           currentUsername={currentUsername}
           eventBus={eventBus}
         />
+      ) : selectedFriend ? (
+        <DmChatArea
+          friendUserId={selectedFriend.userId}
+          friendUsername={selectedFriend.username}
+          currentUserId={currentUserId}
+          eventBus={eventBus}
+        />
       ) : (
         <main className="flex flex-1 items-center justify-center p-6">
           <div className="text-center text-muted-foreground">
-            <p className="text-lg font-medium">Select a room to view messages.</p>
+            <p className="text-lg font-medium">Select a room or contact to view messages.</p>
           </div>
         </main>
       )}
