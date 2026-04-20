@@ -46,3 +46,16 @@ export const listMessagesQuerySchema = z.object({
   before: z.coerce.number().int().positive().optional(),
   limit: z.coerce.number().int().positive().max(100).default(50),
 });
+
+export const userSearchQuerySchema = z.object({
+  q: z.string().trim().min(1).max(48),
+});
+
+export const sendFriendRequestInputSchema = z.object({
+  username: z.string().trim().min(1).max(48),
+  note: z.string().max(200).optional(),
+});
+
+export const userIdParamSchema = z.object({
+  id: z.string().uuid(),
+});

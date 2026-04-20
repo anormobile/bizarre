@@ -44,6 +44,16 @@ export type MessageDeletedMessage = WsMessageBase<
   { roomId: number; messageId: number }
 >;
 
+export type FriendRequestReceivedMessage = WsMessageBase<
+  "FRIEND_REQUEST_RECEIVED",
+  { fromUserId: string; fromUsername: string; note: string | null }
+>;
+
+export type FriendRequestAcceptedMessage = WsMessageBase<
+  "FRIEND_REQUEST_ACCEPTED",
+  { userId: string; username: string }
+>;
+
 export type WsMessage =
   | BroadcastTestMessage
   | MemberJoinedMessage
@@ -52,7 +62,9 @@ export type WsMessage =
   | RoomDeletedMessage
   | MessageNewMessage
   | MessageEditedMessage
-  | MessageDeletedMessage;
+  | MessageDeletedMessage
+  | FriendRequestReceivedMessage
+  | FriendRequestAcceptedMessage;
 
 export interface SessionRow {
   id: string;
@@ -129,4 +141,32 @@ export interface RoomSummary {
   ownerId: string;
   memberCount: number;
   joinedAt?: string;
+}
+
+export interface FriendshipRow {
+  user_a: string;
+  user_b: string;
+  status: "pending" | "confirmed";
+  requested_by: string;
+  note: string | null;
+  created_at: Date;
+}
+
+export interface UserSummary {
+  userId: string;
+  username: string;
+  friendship: "none" | "pending_outgoing" | "pending_incoming" | "confirmed";
+}
+
+export interface FriendView {
+  userId: string;
+  username: string;
+  since: string;
+}
+
+export interface FriendRequestView {
+  userId: string;
+  username: string;
+  note: string | null;
+  createdAt: string;
 }

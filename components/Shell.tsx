@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useCallback, useRef, useMemo } from "react";
+import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { Sidebar } from "@/components/rooms/Sidebar";
 import { ChatArea } from "@/components/chat/ChatArea";
 import type { EventBus } from "@/components/chat/ChatArea";
-import type { RoomSummary, WsMessage } from "@/lib/types";
+import type { RoomSummary, WsMessage, FriendView, FriendRequestView } from "@/lib/types";
 
 interface ShellProps {
   initialMine: RoomSummary[];
@@ -16,6 +16,26 @@ interface ShellProps {
 export function Shell({ initialMine, currentUserId, currentUsername }: ShellProps) {
   const [mine, setMine] = useState<RoomSummary[]>(initialMine);
   const [selectedRoomId, setSelectedRoomId] = useState<number | null>(null);
+
+  const [friends, setFriends] = useState<FriendView[]>([]);
+  const [incoming, setIncoming] = useState<FriendRequestView[]>([]);
+  const [outgoing, setOutgoing] = useState<FriendRequestView[]>([]);
+
+  useEffect(() => {
+    fetch("/api/friends")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => { if (data?.friends) setFriends(data.friends); })
+      .catch(() => {});
+    fetch("/api/friends/requests")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data) {
+          if (data.incoming) setIncoming(data.incoming);
+          if (data.outgoing) setOutgoing(data.outgoing);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const subscribersRef = useRef<Set<(msg: WsMessage) => void>>(new Set());
 
@@ -102,6 +122,25 @@ export function Shell({ initialMine, currentUserId, currentUsername }: ShellProp
           setSelectedRoomId((sel) => (sel === roomId ? null : sel));
           break;
         }
+        case "FRIEND_REQUEST_RECEIVED": {
+          const { fromUserId, fromUsername, note } = msg.payload;
+          setIncoming((prev) => {
+            if (prev.some((r) => r.userId === fromUserId)) return prev;
+            return [{ userId: fromUserId, username: fromUsername, note, createdAt: new Date().toISOString() }, ...prev];
+          });
+          break;
+        }
+        case "FRIEND_REQUEST_ACCEPTED": {
+          const { userId, username } = msg.payload;
+          setOutgoing((prev) => prev.filter((r) => r.userId !== userId));
+          setFriends((prev) => {
+            if (prev.some((f) => f.userId === userId)) return prev;
+            return [...prev, { userId, username, since: new Date().toISOString() }].sort((a, b) =>
+              a.username.localeCompare(b.username),
+            );
+          });
+          break;
+        }
       }
 
       for (const cb of subscribersRef.current) {
@@ -129,6 +168,12 @@ export function Shell({ initialMine, currentUserId, currentUsername }: ShellProp
         onSelect={setSelectedRoomId}
         currentUserId={currentUserId}
         onMineChange={setMine}
+        friends={friends}
+        incoming={incoming}
+        outgoing={outgoing}
+        onFriendsChange={setFriends}
+        onIncomingChange={setIncoming}
+        onOutgoingChange={setOutgoing}
       />
       {selectedRoom ? (
         <ChatArea
