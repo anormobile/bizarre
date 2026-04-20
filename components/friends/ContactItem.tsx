@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { PresenceDot } from "@/components/PresenceDot";
+import { usePresence } from "@/hooks/usePresence";
 import type { FriendView } from "@/lib/types";
 
 interface ContactItemProps {
@@ -44,7 +46,10 @@ export function ContactItem({ friend, selected, onSelect, onRemove }: ContactIte
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onSelect(friend.userId); }}
       className={`group flex cursor-pointer items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-muted/50 ${selected ? "bg-accent" : ""}`}
     >
-      <span className="truncate font-medium">@{friend.username}</span>
+      <span className="flex items-center gap-1.5 truncate font-medium">
+        <PresenceDot status={usePresence(friend.userId)} />
+        @{friend.username}
+      </span>
       <div className="flex items-center gap-1">
         {error && <span className="text-[11px] text-destructive">{error}</span>}
         <Button

@@ -62,6 +62,13 @@ export type FriendRequestDeclinedMessage = WsMessageBase<
   { userId: string }
 >;
 
+export type PresenceStatus = 'online' | 'afk' | 'offline';
+
+export interface PresenceChangedMessage extends WsMessageBase<
+  'PRESENCE_CHANGED',
+  { userId: string; status: PresenceStatus }
+> {}
+
 export type WsMessage =
   | BroadcastTestMessage
   | MemberJoinedMessage
@@ -73,7 +80,8 @@ export type WsMessage =
   | MessageDeletedMessage
   | FriendRequestReceivedMessage
   | FriendRequestAcceptedMessage
-  | FriendRequestDeclinedMessage;
+  | FriendRequestDeclinedMessage
+  | PresenceChangedMessage;
 
 export interface SessionRow {
   id: string;
@@ -171,6 +179,7 @@ export interface FriendView {
   userId: string;
   username: string;
   since: string;
+  status?: PresenceStatus;
 }
 
 export interface FriendRequestView {
@@ -193,4 +202,11 @@ export interface DmThreadView {
   username: string;
   lastMessage: MessageView | null;
   lastActivityAt: string;
+}
+
+export interface RoomMemberView {
+  userId: string;
+  username: string;
+  role: "owner" | "admin" | "member";
+  status: PresenceStatus;
 }

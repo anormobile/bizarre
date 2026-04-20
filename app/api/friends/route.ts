@@ -18,13 +18,15 @@ export async function GET() {
 
   const me = session.user_id;
 
-  const rows = await sql<{ userId: string; username: string; since: Date }[]>`
+  const rows = await sql<{ userId: string; username: string; since: Date; status: string | null }[]>`
     SELECT
       CASE WHEN f.user_a = ${me} THEN f.user_b ELSE f.user_a END AS "userId",
       u.username,
-      f.created_at AS "since"
+      f.created_at AS "since",
+      COALESCE(up.status, 'offline') AS status
     FROM friendships f
     JOIN users u ON u.id = CASE WHEN f.user_a = ${me} THEN f.user_b ELSE f.user_a END
+    LEFT JOIN user_presence up ON up.user_id = CASE WHEN f.user_a = ${me} THEN f.user_b ELSE f.user_a END
     WHERE f.status = 'confirmed'
       AND (f.user_a = ${me} OR f.user_b = ${me})
     ORDER BY u.username ASC
@@ -34,6 +36,7 @@ export async function GET() {
     userId: r.userId,
     username: r.username,
     since: r.since.toISOString(),
+    status: (r.status as FriendView["status"]) ?? "offline",
   }));
 
   return Response.json({ friends });

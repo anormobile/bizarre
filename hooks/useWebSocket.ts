@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useCallback, useState } from "react";
+import { setPresence } from "@/hooks/usePresence";
 import type { WsMessage } from "@/lib/types";
 
 const MAX_BACKOFF_MS = 10_000;
@@ -28,6 +29,9 @@ export function useWebSocket(
     ws.onmessage = (event) => {
       try {
         const data: WsMessage = JSON.parse(event.data as string);
+        if (data.type === "PRESENCE_CHANGED") {
+          setPresence(data.payload.userId, data.payload.status);
+        }
         onMessageRef.current(data);
       } catch {
         /* ignore malformed frames */

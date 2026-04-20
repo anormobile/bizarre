@@ -113,16 +113,64 @@ app.prepare().then(() => {
     }
   });
 
-  wss.on("connection", (ws) => {
+  wss.on("connection", async (ws) => {
     const userId = ws.userId;
+    const isFirstConnect = !connectionsByUser.has(userId) || connectionsByUser.get(userId).size === 0;
     if (!connectionsByUser.has(userId)) connectionsByUser.set(userId, new Set());
     connectionsByUser.get(userId).add(ws);
 
-    ws.on("close", () => {
+    if (isFirstConnect) {
+      try {
+        await dbSql`
+          INSERT INTO user_presence (user_id, status, updated_at)
+          VALUES (${userId}, 'online', NOW())
+          ON CONFLICT (user_id) DO UPDATE SET status = 'online', updated_at = NOW()
+        `;
+        const presenceMsg = JSON.stringify({
+          type: "PRESENCE_CHANGED",
+          payload: { userId, status: "online" },
+          timestamp: Date.now(),
+        });
+        for (const [, socks] of connectionsByUser) {
+          for (const s of socks) {
+            if (s.readyState === 1) {
+              try { s.send(presenceMsg); } catch { /* swallow */ }
+            }
+          }
+        }
+      } catch (err) {
+        console.error("setUserOnline error:", err);
+      }
+    }
+
+    ws.on("close", async () => {
       const sockets = connectionsByUser.get(userId);
       if (sockets) {
         sockets.delete(ws);
-        if (sockets.size === 0) connectionsByUser.delete(userId);
+        if (sockets.size === 0) {
+          connectionsByUser.delete(userId);
+          try {
+            await dbSql`
+              INSERT INTO user_presence (user_id, status, updated_at)
+              VALUES (${userId}, 'offline', NOW())
+              ON CONFLICT (user_id) DO UPDATE SET status = 'offline', updated_at = NOW()
+            `;
+            const presenceMsg = JSON.stringify({
+              type: "PRESENCE_CHANGED",
+              payload: { userId, status: "offline" },
+              timestamp: Date.now(),
+            });
+            for (const [, socks] of connectionsByUser) {
+              for (const s of socks) {
+                if (s.readyState === 1) {
+                  try { s.send(presenceMsg); } catch { /* swallow */ }
+                }
+              }
+            }
+          } catch (err) {
+            console.error("setUserOffline error:", err);
+          }
+        }
       }
     });
   });

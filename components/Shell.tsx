@@ -6,7 +6,8 @@ import { Sidebar } from "@/components/rooms/Sidebar";
 import { ChatArea } from "@/components/chat/ChatArea";
 import { DmChatArea } from "@/components/chat/DmChatArea";
 import type { EventBus } from "@/components/chat/ChatArea";
-import type { RoomSummary, WsMessage, FriendView, FriendRequestView } from "@/lib/types";
+import { setPresenceBulk } from "@/hooks/usePresence";
+import type { RoomSummary, WsMessage, FriendView, FriendRequestView, PresenceStatus } from "@/lib/types";
 
 interface ShellProps {
   initialMine: RoomSummary[];
@@ -26,7 +27,16 @@ export function Shell({ initialMine, currentUserId, currentUsername }: ShellProp
   useEffect(() => {
     fetch("/api/friends")
       .then((r) => (r.ok ? r.json() : null))
-      .then((data) => { if (data?.friends) setFriends(data.friends); })
+      .then((data) => {
+        if (data?.friends) {
+          setFriends(data.friends);
+          const entries: Record<string, PresenceStatus> = {};
+          for (const f of data.friends as FriendView[]) {
+            if (f.status) entries[f.userId] = f.status;
+          }
+          setPresenceBulk(entries);
+        }
+      })
       .catch(() => {});
     fetch("/api/friends/requests")
       .then((r) => (r.ok ? r.json() : null))

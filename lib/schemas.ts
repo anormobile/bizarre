@@ -76,3 +76,5 @@ export const listDmMessagesQuerySchema = z.object({
   before: z.coerce.number().int().positive().optional(),
   limit: z.coerce.number().int().positive().max(100).default(50),
 });
+
+export const presenceStatusSchema = z.enum(['online', 'afk', 'offline']);

@@ -1,4 +1,5 @@
-import type { WsMessage } from "@/lib/types";
+import sql from "@/lib/db";
+import type { WsMessage, PresenceStatus } from "@/lib/types";
 
 type WsLike = { readyState: number; send: (data: string) => void };
 
@@ -31,4 +32,16 @@ export function broadcast(userIds: string[], msg: WsMessage): number {
   }
 
   return count;
+}
+
+export async function getPresenceMap(userIds: string[]): Promise<Record<string, PresenceStatus>> {
+  if (userIds.length === 0) return {};
+  const rows = await sql<{ user_id: string; status: PresenceStatus }[]>`
+    SELECT user_id, status FROM user_presence WHERE user_id = ANY(${userIds})
+  `;
+  const map: Record<string, PresenceStatus> = {};
+  for (const row of rows) {
+    map[row.user_id] = row.status;
+  }
+  return map;
 }
