@@ -50,6 +50,7 @@ app.prepare().then(() => {
   });
 
   function shutdown() {
+    console.log("> Shutting down...");
     const forceTimer = setTimeout(() => process.exit(0), 5000);
     forceTimer.unref?.();
 
