@@ -10,7 +10,7 @@ import {
 } from "@/lib/session";
 
 export async function GET(request: NextRequest) {
-  if (env.NODE_ENV === "production") {
+  if (env.NODE_ENV === "production" && !env.ENABLE_DEV_ROUTES) {
     return Response.json({ error: "not found" }, { status: 404 });
   }
 
