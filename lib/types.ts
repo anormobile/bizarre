@@ -138,6 +138,15 @@ export interface MessageRow {
   created_at: Date;
 }
 
+export interface AttachmentView {
+  id: number;
+  messageId: number;
+  originalName: string;
+  mime: string;
+  sizeBytes: number;
+  createdAt: string;
+}
+
 export interface MessageView {
   id: number;
   roomId: number | null;
@@ -148,6 +157,7 @@ export interface MessageView {
   createdAt: string;
   editedAt: string | null;
   deletedAt: string | null;
+  attachments: AttachmentView[];
 }
 
 export interface RoomSummary {

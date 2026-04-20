@@ -78,3 +78,22 @@ export const listDmMessagesQuerySchema = z.object({
 });
 
 export const presenceStatusSchema = z.enum(['online', 'afk', 'offline']);
+
+export const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;
+export const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
+
+export const attachmentIdParamSchema = z.object({
+  id: z.coerce.number().int().positive(),
+});
+
+export const uploadAttachmentFieldsSchema = z
+  .object({
+    content: z.string().max(3072).optional().default(''),
+    roomId: z.coerce.number().int().positive().optional(),
+    dmId: z.coerce.number().int().positive().optional(),
+    userId: z.string().uuid().optional(),
+  })
+  .refine(
+    (v) => (v.roomId ? 1 : 0) + (v.dmId ? 1 : 0) + (v.userId ? 1 : 0) === 1,
+    { message: 'exactly one of roomId, dmId, userId required' },
+  );

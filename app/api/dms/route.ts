@@ -74,6 +74,7 @@ export async function GET() {
         createdAt: r.last_msg_created_at!.toISOString(),
         editedAt: r.last_msg_edited_at ? r.last_msg_edited_at.toISOString() : null,
         deletedAt: r.last_msg_deleted_at ? r.last_msg_deleted_at.toISOString() : null,
+        attachments: [],
       };
     }
     return {

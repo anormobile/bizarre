@@ -1,7 +1,7 @@
 import sql from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { dmPathParamSchema, listDmMessagesQuerySchema } from "@/lib/schemas";
-import type { SessionRow, MessageView } from "@/lib/types";
+import type { SessionRow, MessageView, AttachmentView } from "@/lib/types";
 
 async function authenticate(): Promise<SessionRow | null> {
   return getSession(async (tokenHash) => {
@@ -84,6 +84,27 @@ export async function GET(
     `;
   }
 
+  const messageIds = msgRows.map((r) => r.id);
+  let attachmentsByMessage = new Map<number, AttachmentView[]>();
+  if (messageIds.length > 0) {
+    const attRows = await sql<{ id: number; message_id: number; original_name: string; mime: string; size_bytes: number; created_at: Date }[]>`
+      SELECT id, message_id, original_name, mime, size_bytes, created_at
+      FROM attachments WHERE message_id = ANY(${messageIds})
+    `;
+    for (const a of attRows) {
+      const list = attachmentsByMessage.get(a.message_id) ?? [];
+      list.push({
+        id: a.id,
+        messageId: a.message_id,
+        originalName: a.original_name,
+        mime: a.mime,
+        sizeBytes: Number(a.size_bytes),
+        createdAt: a.created_at.toISOString(),
+      });
+      attachmentsByMessage.set(a.message_id, list);
+    }
+  }
+
   const messages: MessageView[] = msgRows.map((r) => ({
     id: r.id,
     roomId: r.room_id,
@@ -94,6 +115,7 @@ export async function GET(
     createdAt: r.created_at.toISOString(),
     editedAt: r.edited_at ? r.edited_at.toISOString() : null,
     deletedAt: r.deleted_at ? r.deleted_at.toISOString() : null,
+    attachments: attachmentsByMessage.get(r.id) ?? [],
   }));
 
   const nextCursor = messages.length === limit ? messages[messages.length - 1]!.id : null;

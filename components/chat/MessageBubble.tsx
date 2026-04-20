@@ -1,13 +1,48 @@
 "use client";
 
 import { useState } from "react";
-import type { MessageView } from "@/lib/types";
+import type { MessageView, AttachmentView } from "@/lib/types";
 
 interface MessageBubbleProps {
   message: MessageView;
   isOwn: boolean;
   onEdit: (id: number, content: string) => void;
   onDelete: (id: number) => void;
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function AttachmentRenderer({ attachment }: { attachment: AttachmentView }) {
+  const url = `/api/attachments/${attachment.id}`;
+
+  if (attachment.mime.startsWith("image/")) {
+    return (
+      <a href={url} target="_blank" rel="noreferrer">
+        <img
+          src={url}
+          alt={attachment.originalName}
+          className="max-h-64 max-w-xs rounded-md"
+          loading="lazy"
+        />
+      </a>
+    );
+  }
+
+  return (
+    <a
+      href={url}
+      download={attachment.originalName}
+      className="inline-flex items-center gap-2 rounded-md border bg-muted/50 px-3 py-1.5 text-sm hover:bg-muted"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></svg>
+      <span className="truncate max-w-48">{attachment.originalName}</span>
+      <span className="shrink-0 text-xs text-muted-foreground">{formatBytes(attachment.sizeBytes)}</span>
+    </a>
+  );
 }
 
 export function MessageBubble({ message, isOwn, onEdit, onDelete }: MessageBubbleProps) {
@@ -95,7 +130,18 @@ export function MessageBubble({ message, isOwn, onEdit, onDelete }: MessageBubbl
           </div>
         </div>
       ) : (
-        <p className="whitespace-pre-wrap text-sm">{message.content}</p>
+        <>
+          {message.content && (
+            <p className="whitespace-pre-wrap text-sm">{message.content}</p>
+          )}
+          {message.attachments?.length > 0 && (
+            <div className="mt-1 flex flex-col gap-1">
+              {message.attachments.map((att) => (
+                <AttachmentRenderer key={att.id} attachment={att} />
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

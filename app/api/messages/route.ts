@@ -101,6 +101,7 @@ export async function POST(request: Request) {
       createdAt: msg.created_at.toISOString(),
       editedAt: null,
       deletedAt: null,
+      attachments: [],
     };
 
     const memberIds = await sql<{ user_id: string }[]>`
@@ -164,6 +165,7 @@ export async function POST(request: Request) {
     createdAt: msg.created_at.toISOString(),
     editedAt: null,
     deletedAt: null,
+    attachments: [],
   };
 
   broadcast(
