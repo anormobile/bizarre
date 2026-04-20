@@ -26,3 +26,9 @@ export const loginInputSchema = z.object({
 export const broadcastTestInputSchema = z.object({
   text: z.string().min(1).max(200),
 });
+
+export const createRoomInputSchema = z.object({
+  name: z.string().min(3).max(48).regex(/^[a-zA-Z0-9_-]+$/, "invalid name"),
+  description: z.string().max(256).optional(),
+  visibility: z.enum(["public", "private"]),
+});
