@@ -10,7 +10,10 @@ const envSchema = z.object({
     .min(32, "SESSION_SECRET must be at least 32 characters"),
   SESSION_COOKIE_NAME: z.string().default("bizarre_session"),
   SESSION_MAX_AGE_SECONDS: z.coerce.number().int().positive().default(2592000),
-  ENABLE_DEV_ROUTES: z.string().optional(),
+  ENABLE_DEV_ROUTES: z
+    .enum(["true", "false"])
+    .optional()
+    .transform((v) => v === "true"),
 });
 
 type Env = z.infer<typeof envSchema>;

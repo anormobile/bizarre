@@ -6,7 +6,7 @@ services:
     environment:
       - DATABASE_URL=postgres://postgres:password@db:5432/chat
       - SESSION_SECRET=local-dev-session-secret-at-least-32-chars
-      - ENABLE_DEV_ROUTES=true
+      - ENABLE_DEV_ROUTES=${ENABLE_DEV_ROUTES:-true}
     depends_on:
       db:
         condition: service_healthy
