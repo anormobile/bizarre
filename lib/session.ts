@@ -1,6 +1,7 @@
 import { createHmac, createHash, randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { env } from "@/lib/env";
+import sql from "@/lib/db";
 import type { SessionRow } from "@/lib/types";
 
 function sha256(data: string): string {
@@ -109,4 +110,26 @@ export async function getSession(
   const tokenHash = hashSessionId(sessionId);
   const row = await query(tokenHash);
   return row ?? null;
+}
+
+/**
+ * Insert a session row, set the signed cookie, and return the raw session id.
+ */
+export async function createSession(userId: string): Promise<string> {
+  const sessionId = generateSessionId();
+  const tokenHash = hashSessionId(sessionId);
+  await sql`
+    INSERT INTO sessions (user_id, token_hash)
+    VALUES (${userId}, ${tokenHash})
+  `;
+  await setSessionCookie(sessionId);
+  return sessionId;
+}
+
+/**
+ * Delete the session row by token hash and clear the cookie.
+ */
+export async function deleteSessionByHash(tokenHash: string): Promise<void> {
+  await sql`DELETE FROM sessions WHERE token_hash = ${tokenHash}`;
+  await clearSessionCookie();
 }
