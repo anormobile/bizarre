@@ -21,7 +21,7 @@ export function AddContactModal({ onSent, onAutoAccepted }: AddContactModalProps
   const [searching, setSearching] = useState(false);
   const [sendingFor, setSendingFor] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   function reset() {
     setQuery("");
