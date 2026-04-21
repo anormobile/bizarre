@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { Avatar } from "@/components/Avatar";
 import { PresenceDot } from "@/components/PresenceDot";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -11,15 +11,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import type { RoomMemberView } from "@/lib/types";
+import { Button } from "@/components/ui/button";
+import type { RoomMemberView, RoomSummary } from "@/lib/types";
 
 interface MembersPanelProps {
   roomId: number;
+  room: RoomSummary;
   members: RoomMemberView[];
   currentUserId: string;
+  onManage?: () => void;
+  onInvite?: () => void;
 }
 
-export function MembersPanel({ roomId, members, currentUserId }: MembersPanelProps) {
+export function MembersPanel({ roomId, room, members, currentUserId, onManage, onInvite }: MembersPanelProps) {
   const [banTarget, setBanTarget] = useState<RoomMemberView | null>(null);
   const [banning, setBanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,41 +59,92 @@ export function MembersPanel({ roomId, members, currentUserId }: MembersPanelPro
     }
   }
 
-  const roleBadge = (role: string) => {
-    if (role === "owner") return <span className="rounded bg-amber-500/20 px-1 text-[10px] font-medium text-amber-700 dark:text-amber-400">owner</span>;
-    if (role === "admin") return <span className="rounded bg-blue-500/20 px-1 text-[10px] font-medium text-blue-700 dark:text-blue-400">admin</span>;
-    return null;
+  const grouped = {
+    owner: members.filter((m) => m.role === "owner"),
+    admin: members.filter((m) => m.role === "admin"),
+    member: members.filter((m) => m.role === "member"),
   };
 
-  return (
-    <aside className="flex w-56 shrink-0 flex-col border-l">
-      <div className="border-b px-3 py-2">
-        <span className="text-xs font-semibold text-muted-foreground">
-          Members — {members.length}
+  function MemberRow({ m }: { m: RoomMemberView }) {
+    return (
+      <div className="group flex items-center gap-2 rounded-lg px-2 py-1">
+        <div className="relative shrink-0">
+          <Avatar username={m.username} size={26} />
+          <PresenceDot
+            status={m.status}
+            size={9}
+            borderColor="var(--color-surface)"
+            className="absolute -bottom-px -right-px"
+          />
+        </div>
+        <span className={`flex-1 truncate text-xs font-medium ${m.status === 'offline' ? 'text-text-3' : 'text-text'}`}>
+          {m.username}
         </span>
-      </div>
-      <ul className="flex-1 overflow-y-auto">
-        {members.map((m) => (
-          <li
-            key={m.userId}
-            className="group flex items-center gap-2 px-3 py-1.5 text-sm"
+        {m.role === "owner" && (
+          <span className="rounded bg-primary-light px-[5px] py-px text-[9px] font-bold tracking-wide text-primary">OWNER</span>
+        )}
+        {m.role === "admin" && (
+          <span className="rounded bg-[#FCE4EC] px-[5px] py-px text-[9px] font-bold text-[#EC407A]">ADMIN</span>
+        )}
+        {canBan(m) && (
+          <button
+            onClick={() => { setError(null); setBanTarget(m); }}
+            className="hidden rounded bg-[#FEF2F2] px-1.5 py-0.5 text-[10px] font-medium text-unread group-hover:inline-flex"
           >
-            <PresenceDot status={m.status} />
-            <span className="truncate">@{m.username}</span>
-            {roleBadge(m.role)}
-            {canBan(m) && (
-              <Button
-                size="xs"
-                variant="destructive"
-                className="ml-auto hidden group-hover:inline-flex"
-                onClick={() => { setError(null); setBanTarget(m); }}
-              >
-                Ban
-              </Button>
-            )}
-          </li>
-        ))}
-      </ul>
+            Ban
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  function Section({ label, items }: { label: string; items: RoomMemberView[] }) {
+    if (items.length === 0) return null;
+    return (
+      <div className="mb-1.5">
+        <div className="px-2 pb-0.5 pt-1.5 text-[10px] font-bold uppercase tracking-[0.06em] text-text-3">{label}</div>
+        {items.map((m) => <MemberRow key={m.userId} m={m} />)}
+      </div>
+    );
+  }
+
+  return (
+    <aside className="flex w-[210px] shrink-0 flex-col border-l border-border bg-surface">
+      <div className="border-b border-border px-3.5 py-3">
+        <div className="text-[13px] font-bold text-text">#{room.name}</div>
+        {room.description && (
+          <p className="mt-0.5 line-clamp-2 text-[11px] text-text-3">{room.description}</p>
+        )}
+        <div className="mt-1.5 flex items-center gap-2">
+          <span className="text-[11px]">{room.visibility === "public" ? "🌐 Public" : "🔒 Private"}</span>
+          <span className="text-[11px] text-text-3">{members.length} members</span>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-1.5 py-1.5">
+        <Section label="Owner" items={grouped.owner} />
+        <Section label="Admins" items={grouped.admin} />
+        <Section label={`Members (${grouped.member.length})`} items={grouped.member} />
+      </div>
+
+      <div className="flex gap-1.5 border-t border-border p-2.5">
+        {onInvite && (
+          <button
+            onClick={onInvite}
+            className="flex-1 rounded-lg border border-border px-2 py-1.5 text-[11px] font-medium text-text-2 transition-colors hover:border-primary hover:text-primary"
+          >
+            Invite
+          </button>
+        )}
+        {onManage && (
+          <button
+            onClick={onManage}
+            className="flex-1 rounded-lg bg-primary px-2 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-primary-hover"
+          >
+            Manage
+          </button>
+        )}
+      </div>
 
       <Dialog open={banTarget !== null} onOpenChange={(open) => { if (!open) setBanTarget(null); }}>
         <DialogContent>
@@ -99,13 +154,13 @@ export function MembersPanel({ roomId, members, currentUserId }: MembersPanelPro
               This will remove the user from the room and prevent them from rejoining.
             </DialogDescription>
           </DialogHeader>
-          {error && <p className="text-destructive text-xs">{error}</p>}
+          {error && <p className="text-xs text-unread">{error}</p>}
           <DialogFooter>
             <Button variant="outline" onClick={() => setBanTarget(null)} disabled={banning}>
               Cancel
             </Button>
             <Button variant="destructive" onClick={handleBan} disabled={banning}>
-              {banning ? "Banning…" : "Confirm Ban"}
+              {banning ? "Banning\u2026" : "Confirm Ban"}
             </Button>
           </DialogFooter>
         </DialogContent>
