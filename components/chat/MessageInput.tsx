@@ -179,6 +179,22 @@ export function MessageInput({ roomId, dmId, dmUserId, onSent, replyingTo, onCle
           value={content}
           onChange={(e) => setContent(e.target.value)}
           onKeyDown={handleKeyDown}
+          onPaste={(e) => {
+            const items = e.clipboardData?.items;
+            if (!items) return;
+            for (const item of Array.from(items)) {
+              if (item.kind === "file") {
+                const f = item.getAsFile();
+                if (f) {
+                  e.preventDefault();
+                  const err = validateFile(f);
+                  if (err) { setError(err); return; }
+                  setSelectedFile(f);
+                  return;
+                }
+              }
+            }
+          }}
           placeholder="Type a message…"
           maxLength={3072}
           rows={3}
