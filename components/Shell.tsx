@@ -11,6 +11,7 @@ import type { EventBus } from "@/components/chat/ChatArea";
 import { setPresenceBulk } from "@/hooks/usePresence";
 import { increment, clear } from "@/lib/unread";
 import { MembersPanel } from "@/components/MembersPanel";
+import { ManageRoomModal } from "@/components/rooms/ManageRoomModal";
 import { ContactsView } from "@/components/views/ContactsView";
 import { SessionsView } from "@/components/views/SessionsView";
 import { PublicRoomsModal } from "@/components/rooms/PublicRoomsModal";
@@ -31,6 +32,7 @@ export function Shell({ initialMine, currentUserId, currentUsername, afkIdleMs }
   const [activeView, setActiveView] = useState<NavView>('chat');
   const [publicRoomsOpen, setPublicRoomsOpen] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+  const [manageRoomOpen, setManageRoomOpen] = useState(false);
 
   const [roomMembers, setRoomMembers] = useState<RoomMemberView[]>([]);
 
@@ -316,8 +318,11 @@ export function Shell({ initialMine, currentUserId, currentUsername, afkIdleMs }
                 />
                 <MembersPanel
                   roomId={selectedRoom.id}
+                  room={selectedRoom}
                   members={roomMembers}
                   currentUserId={currentUserId}
+                  onManage={() => setManageRoomOpen(true)}
+                  onInvite={() => { setManageRoomOpen(true); }}
                 />
               </>
             ) : selectedFriend ? (
@@ -369,6 +374,24 @@ export function Shell({ initialMine, currentUserId, currentUsername, afkIdleMs }
         open={changePasswordOpen}
         onOpenChange={setChangePasswordOpen}
       />
+      {selectedRoom && (
+        <ManageRoomModal
+          open={manageRoomOpen}
+          onOpenChange={setManageRoomOpen}
+          room={selectedRoom}
+          members={roomMembers}
+          currentUserId={currentUserId}
+          onRoomUpdated={(partial) => {
+            setMine((prev) =>
+              prev.map((r) => (r.id === selectedRoom.id ? { ...r, ...partial } : r)),
+            );
+          }}
+          onRoomDeleted={() => {
+            setMine((prev) => prev.filter((r) => r.id !== selectedRoom.id));
+            setSelectedRoomId(null);
+          }}
+        />
+      )}
     </div>
   );
 }
