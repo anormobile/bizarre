@@ -34,6 +34,17 @@ export function broadcast(userIds: string[], msg: WsMessage): number {
   return count;
 }
 
+const roomConnections = new Map<number, Set<WsLike>>();
+
+export function removeUserFromRoomFanout(roomId: number, userId: string): void {
+  const set = roomConnections.get(roomId);
+  if (!set) return;
+  for (const ws of set) {
+    if ((ws as any).userId === userId) set.delete(ws);
+  }
+  if (set.size === 0) roomConnections.delete(roomId);
+}
+
 export async function getPresenceMap(userIds: string[]): Promise<Record<string, PresenceStatus>> {
   if (userIds.length === 0) return {};
   const rows = await sql<{ user_id: string; status: PresenceStatus }[]>`

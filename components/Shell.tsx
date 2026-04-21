@@ -7,7 +7,8 @@ import { ChatArea } from "@/components/chat/ChatArea";
 import { DmChatArea } from "@/components/chat/DmChatArea";
 import type { EventBus } from "@/components/chat/ChatArea";
 import { setPresenceBulk } from "@/hooks/usePresence";
-import type { RoomSummary, WsMessage, FriendView, FriendRequestView, PresenceStatus } from "@/lib/types";
+import { MembersPanel } from "@/components/MembersPanel";
+import type { RoomSummary, WsMessage, FriendView, FriendRequestView, RoomMemberView, PresenceStatus } from "@/lib/types";
 
 interface ShellProps {
   initialMine: RoomSummary[];
@@ -19,6 +20,8 @@ export function Shell({ initialMine, currentUserId, currentUsername }: ShellProp
   const [mine, setMine] = useState<RoomSummary[]>(initialMine);
   const [selectedRoomId, setSelectedRoomId] = useState<number | null>(null);
   const [selectedDmUserId, setSelectedDmUserId] = useState<string | null>(null);
+
+  const [roomMembers, setRoomMembers] = useState<RoomMemberView[]>([]);
 
   const [friends, setFriends] = useState<FriendView[]>([]);
   const [incoming, setIncoming] = useState<FriendRequestView[]>([]);
@@ -48,6 +51,22 @@ export function Shell({ initialMine, currentUserId, currentUsername }: ShellProp
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (selectedRoomId === null) {
+      setRoomMembers([]);
+      return;
+    }
+    let cancelled = false;
+    fetch(`/api/rooms/${selectedRoomId}/members`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled || !data?.members) return;
+        setRoomMembers(data.members);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [selectedRoomId]);
 
   const subscribersRef = useRef<Set<(msg: WsMessage) => void>>(new Set());
 
@@ -86,7 +105,7 @@ export function Shell({ initialMine, currentUserId, currentUsername }: ShellProp
           break;
         }
         case "MEMBER_JOINED": {
-          const { roomId, userId } = msg.payload;
+          const { roomId, userId, username, role } = msg.payload;
           if (userId === currentUserId) {
             setMine((prev) => {
               if (prev.some((r) => r.id === roomId)) return prev;
@@ -110,6 +129,11 @@ export function Shell({ initialMine, currentUserId, currentUsername }: ShellProp
               ),
             );
           }
+          setRoomMembers((prev) => {
+            if (prev.length === 0) return prev;
+            if (prev.some((m) => m.userId === userId)) return prev;
+            return [...prev, { userId, username, role, status: "offline" as const }];
+          });
           break;
         }
         case "MEMBER_LEFT": {
@@ -126,6 +150,13 @@ export function Shell({ initialMine, currentUserId, currentUsername }: ShellProp
               ),
             );
           }
+          setRoomMembers((prev) => prev.filter((m) => m.userId !== userId));
+          break;
+        }
+        case "USER_BAN_NOTIFY": {
+          const { roomId } = msg.payload;
+          setMine((prev) => prev.filter((r) => Number(r.id) !== Number(roomId)));
+          setSelectedRoomId((sel) => (Number(sel) === Number(roomId) ? null : sel));
           break;
         }
         case "ROOM_DELETED": {
@@ -187,6 +218,7 @@ export function Shell({ initialMine, currentUserId, currentUsername }: ShellProp
 
   const selectedRoom = mine.find((r) => r.id === selectedRoomId) ?? null;
   const selectedFriend = friends.find((f) => f.userId === selectedDmUserId) ?? null;
+  const viewerRoomRole = roomMembers.find((m) => m.userId === currentUserId)?.role ?? null;
 
   return (
     <div className="flex flex-1 overflow-hidden">
@@ -206,12 +238,20 @@ export function Shell({ initialMine, currentUserId, currentUsername }: ShellProp
         onSelectDm={handleSelectDm}
       />
       {selectedRoom ? (
-        <ChatArea
-          room={selectedRoom}
-          currentUserId={currentUserId}
-          currentUsername={currentUsername}
-          eventBus={eventBus}
-        />
+        <>
+          <ChatArea
+            room={selectedRoom}
+            currentUserId={currentUserId}
+            currentUsername={currentUsername}
+            eventBus={eventBus}
+            viewerRoomRole={viewerRoomRole}
+          />
+          <MembersPanel
+            roomId={selectedRoom.id}
+            members={roomMembers}
+            currentUserId={currentUserId}
+          />
+        </>
       ) : selectedFriend ? (
         <DmChatArea
           friendUserId={selectedFriend.userId}

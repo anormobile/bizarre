@@ -50,7 +50,7 @@ export async function GET(
     SELECT user_id FROM room_members WHERE room_id = ${roomId} AND user_id = ${userId}
   `;
   if (membership.length === 0) {
-    return Response.json({ error: "not a member" }, { status: 403 });
+    return Response.json({ error: "forbidden" }, { status: 403 });
   }
 
   const url = new URL(request.url);

@@ -8,6 +8,7 @@ interface MessageBubbleProps {
   isOwn: boolean;
   onEdit: (id: number, content: string) => void;
   onDelete: (id: number) => void;
+  viewerRoomRole?: 'owner' | 'admin' | 'member' | null;
 }
 
 function formatBytes(bytes: number): string {
@@ -45,7 +46,7 @@ function AttachmentRenderer({ attachment }: { attachment: AttachmentView }) {
   );
 }
 
-export function MessageBubble({ message, isOwn, onEdit, onDelete }: MessageBubbleProps) {
+export function MessageBubble({ message, isOwn, onEdit, onDelete, viewerRoomRole }: MessageBubbleProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(message.content);
   const [saving, setSaving] = useState(false);
@@ -85,6 +86,17 @@ export function MessageBubble({ message, isOwn, onEdit, onDelete }: MessageBubbl
             >
               Edit
             </button>
+            <button
+              type="button"
+              onClick={() => onDelete(message.id)}
+              className="text-xs text-muted-foreground hover:text-destructive"
+            >
+              Delete
+            </button>
+          </span>
+        )}
+        {!isOwn && !isDeleted && message.roomId != null && (viewerRoomRole === "owner" || viewerRoomRole === "admin") && (
+          <span className="ml-auto hidden gap-2 group-hover:flex">
             <button
               type="button"
               onClick={() => onDelete(message.id)}

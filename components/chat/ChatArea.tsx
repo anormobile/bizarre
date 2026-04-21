@@ -14,9 +14,10 @@ interface ChatAreaProps {
   currentUserId: string;
   currentUsername: string;
   eventBus: EventBus;
+  viewerRoomRole?: 'owner' | 'admin' | 'member' | null;
 }
 
-export function ChatArea({ room, currentUserId, eventBus }: ChatAreaProps) {
+export function ChatArea({ room, currentUserId, eventBus, viewerRoomRole }: ChatAreaProps) {
   const [messages, setMessages] = useState<MessageView[]>([]);
   const [nextCursor, setNextCursor] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
@@ -79,10 +80,10 @@ export function ChatArea({ room, currentUserId, eventBus }: ChatAreaProps) {
           ),
         );
       }
-      if (msg.type === "MESSAGE_DELETED" && msg.payload.roomId === room.id) {
+      if (msg.type === "MESSAGE_DELETED" && Number(msg.payload.roomId) === Number(room.id)) {
         setMessages((prev) =>
           prev.map((m) =>
-            m.id === msg.payload.messageId
+            Number(m.id) === Number(msg.payload.messageId)
               ? { ...m, content: "", deletedAt: new Date().toISOString() }
               : m,
           ),
@@ -151,6 +152,7 @@ export function ChatArea({ room, currentUserId, eventBus }: ChatAreaProps) {
           onEdit={handleEdit}
           onDelete={handleDelete}
           onScroll={handleScroll}
+          viewerRoomRole={viewerRoomRole}
         />
       )}
       <MessageInput roomId={room.id} />

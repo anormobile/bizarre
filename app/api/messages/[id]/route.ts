@@ -137,7 +137,19 @@ export async function DELETE(
   }
 
   if (msg.user_id !== userId) {
-    return Response.json({ error: "not your message" }, { status: 403 });
+    if (msg.dm_id !== null) {
+      return Response.json({ error: "forbidden" }, { status: 403 });
+    }
+
+    const roomId = msg.room_id!;
+    const callerRows = await sql<{ role: 'owner' | 'admin' | 'member' }[]>`
+      SELECT role FROM room_members
+      WHERE room_id = ${roomId} AND user_id = ${userId}
+    `;
+    const callerRole = callerRows[0]?.role ?? null;
+    if (callerRole !== "owner" && callerRole !== "admin") {
+      return Response.json({ error: "forbidden" }, { status: 403 });
+    }
   }
 
   await sql<MessageRow[]>`

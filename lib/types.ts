@@ -14,10 +14,17 @@ export type MemberJoinedMessage = WsMessageBase<
   { roomId: number; userId: string; username: string; role: "owner" | "admin" | "member" }
 >;
 
+export type MemberLeftReason = 'leave' | 'delete' | 'banned';
+
 export type MemberLeftMessage = WsMessageBase<
   "MEMBER_LEFT",
-  { roomId: number; userId: string; reason: "leave" | "delete" }
+  { roomId: number; userId: string; reason: MemberLeftReason }
 >;
+
+export interface UserBanNotifyMessage extends WsMessageBase<
+  'USER_BAN_NOTIFY',
+  { roomId: number }
+> {}
 
 export type RoomUpdatedMessage = WsMessageBase<
   "ROOM_UPDATED",
@@ -81,7 +88,8 @@ export type WsMessage =
   | FriendRequestReceivedMessage
   | FriendRequestAcceptedMessage
   | FriendRequestDeclinedMessage
-  | PresenceChangedMessage;
+  | PresenceChangedMessage
+  | UserBanNotifyMessage;
 
 export interface SessionRow {
   id: string;

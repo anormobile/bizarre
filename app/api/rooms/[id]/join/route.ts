@@ -36,6 +36,14 @@ export async function POST(
   }
 
   const userId = session.user_id;
+
+  const banned = await sql<{ room_id: number }[]>`
+    SELECT room_id FROM room_bans WHERE room_id = ${roomId} AND user_id = ${userId}
+  `;
+  if (banned.length > 0) {
+    return Response.json({ error: "banned" }, { status: 403 });
+  }
+
   const existing = await sql<RoomMemberRow[]>`
     SELECT room_id, user_id, role, joined_at
     FROM room_members WHERE room_id = ${roomId} AND user_id = ${userId}

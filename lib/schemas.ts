@@ -82,6 +82,11 @@ export const presenceStatusSchema = z.enum(['online', 'afk', 'offline']);
 export const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;
 export const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
 
+export const roomMemberPathSchema = z.object({
+  id: z.coerce.number().int().positive(),
+  userId: z.string().uuid(),
+});
+
 export const attachmentIdParamSchema = z.object({
   id: z.coerce.number().int().positive(),
 });
