@@ -78,6 +78,11 @@ export const listDmMessagesQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(100).default(50),
 });
 
+export const changePasswordInputSchema = z.object({
+  oldPassword: z.string().min(1),
+  newPassword: z.string().min(8),
+});
+
 export const presenceStatusSchema = z.enum(['online', 'afk', 'offline']);
 
 export const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;

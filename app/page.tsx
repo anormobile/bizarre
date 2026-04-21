@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import sql from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { LogoutButton } from "@/components/LogoutButton";
+import { ChangePasswordModal } from "@/components/auth/ChangePasswordModal";
 import { WsStatus } from "@/components/WsStatus";
 import { Shell } from "@/components/Shell";
 import type { SessionRow, RoomSummary } from "@/lib/types";
@@ -46,7 +47,10 @@ export default async function Home() {
           <span className="text-sm font-semibold">@{user.username}</span>
           <WsStatus />
         </div>
-        <LogoutButton />
+        <div className="flex items-center gap-2">
+          <ChangePasswordModal />
+          <LogoutButton />
+        </div>
       </header>
       <Shell initialMine={mine} currentUserId={session.user_id} currentUsername={user.username} />
     </div>
