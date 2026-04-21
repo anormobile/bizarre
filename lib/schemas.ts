@@ -101,6 +101,19 @@ export const attachmentIdParamSchema = z.object({
   id: z.coerce.number().int().positive(),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().email(),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(10),
+  newPassword: z.string().min(8, "password must be at least 8 characters"),
+});
+
+export const deleteAccountSchema = z.object({
+  password: z.string().min(1),
+});
+
 export const roomMemberRoleSchema = z.object({
   role: z.enum(['admin', 'member']),
 });

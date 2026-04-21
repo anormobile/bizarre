@@ -16,6 +16,7 @@ import { ContactsView } from "@/components/views/ContactsView";
 import { SessionsView } from "@/components/views/SessionsView";
 import { PublicRoomsModal } from "@/components/rooms/PublicRoomsModal";
 import { ChangePasswordModal } from "@/components/auth/ChangePasswordModal";
+import { DeleteAccountModal } from "@/components/auth/DeleteAccountModal";
 import type { RoomSummary, WsMessage, FriendView, FriendRequestView, RoomMemberView, PresenceStatus } from "@/lib/types";
 
 interface ShellProps {
@@ -32,6 +33,7 @@ export function Shell({ initialMine, currentUserId, currentUsername, afkIdleMs }
   const [activeView, setActiveView] = useState<NavView>('chat');
   const [publicRoomsOpen, setPublicRoomsOpen] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+  const [deleteAccountOpen, setDeleteAccountOpen] = useState(false);
   const [manageRoomOpen, setManageRoomOpen] = useState(false);
 
   const [roomMembers, setRoomMembers] = useState<RoomMemberView[]>([]);
@@ -319,6 +321,7 @@ export function Shell({ initialMine, currentUserId, currentUsername, afkIdleMs }
         username={currentUsername}
         onSignOut={handleSignOut}
         onChangePassword={() => setChangePasswordOpen(true)}
+        onDeleteAccount={() => setDeleteAccountOpen(true)}
       />
       <div className="flex flex-1 overflow-hidden">
         {activeView === 'chat' && (
@@ -402,6 +405,10 @@ export function Shell({ initialMine, currentUserId, currentUsername, afkIdleMs }
       <ChangePasswordModal
         open={changePasswordOpen}
         onOpenChange={setChangePasswordOpen}
+      />
+      <DeleteAccountModal
+        open={deleteAccountOpen}
+        onOpenChange={setDeleteAccountOpen}
       />
       {selectedRoom && (
         <ManageRoomModal

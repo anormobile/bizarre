@@ -12,6 +12,7 @@ interface TopNavProps {
   username: string;
   onSignOut: () => void;
   onChangePassword: () => void;
+  onDeleteAccount: () => void;
 }
 
 const NAV_ITEMS: { id: NavView; label: string }[] = [
@@ -21,7 +22,7 @@ const NAV_ITEMS: { id: NavView; label: string }[] = [
   { id: 'sessions', label: 'Sessions' },
 ];
 
-export function TopNav({ activeView, onViewChange, username, onSignOut, onChangePassword }: TopNavProps) {
+export function TopNav({ activeView, onViewChange, username, onSignOut, onChangePassword, onDeleteAccount }: TopNavProps) {
   const [profileOpen, setProfileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -104,6 +105,13 @@ export function TopNav({ activeView, onViewChange, username, onSignOut, onChange
             >
               <span className="text-[14px]">🔑</span>
               Change password
+            </button>
+            <button
+              onClick={() => { onDeleteAccount(); setProfileOpen(false); }}
+              className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-[13px] text-unread transition-colors hover:bg-[#FEF2F2]"
+            >
+              <span className="text-[14px]">🗑</span>
+              Delete account
             </button>
             <button
               onClick={() => { onSignOut(); setProfileOpen(false); }}
