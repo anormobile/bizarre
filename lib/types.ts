@@ -155,6 +155,12 @@ export interface AttachmentView {
   createdAt: string;
 }
 
+export interface ReplyToView {
+  id: number;
+  content: string;
+  username: string;
+}
+
 export interface MessageView {
   id: number;
   roomId: number | null;
@@ -166,6 +172,8 @@ export interface MessageView {
   editedAt: string | null;
   deletedAt: string | null;
   attachments: AttachmentView[];
+  replyToId: number | null;
+  replyTo: ReplyToView | null;
 }
 
 export interface RoomSummary {

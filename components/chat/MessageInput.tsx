@@ -6,11 +6,19 @@ import type { MessageView } from "@/lib/types";
 const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;
 const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
 
+interface ReplyingTo {
+  id: number;
+  content: string;
+  username: string;
+}
+
 interface MessageInputProps {
   roomId?: number;
   dmId?: number;
   dmUserId?: string;
   onSent?: (message: MessageView) => void;
+  replyingTo?: ReplyingTo | null;
+  onClearReply?: () => void;
 }
 
 function formatBytes(bytes: number): string {
@@ -19,7 +27,7 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function MessageInput({ roomId, dmId, dmUserId, onSent }: MessageInputProps) {
+export function MessageInput({ roomId, dmId, dmUserId, onSent, replyingTo, onClearReply }: MessageInputProps) {
   const [content, setContent] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -80,6 +88,7 @@ export function MessageInput({ roomId, dmId, dmUserId, onSent }: MessageInputPro
         if (roomId) payload.roomId = roomId;
         else if (dmId) payload.dmId = dmId;
         else payload.userId = dmUserId;
+        if (replyingTo) payload.replyToId = replyingTo.id;
 
         res = await fetch("/api/messages", {
           method: "POST",
@@ -92,6 +101,7 @@ export function MessageInput({ roomId, dmId, dmUserId, onSent }: MessageInputPro
         const data = await res.json();
         setContent("");
         setSelectedFile(null);
+        onClearReply?.();
         onSent?.(data.message as MessageView);
       } else {
         const data = await res.json().catch(() => ({ error: "request failed" }));
@@ -103,7 +113,7 @@ export function MessageInput({ roomId, dmId, dmUserId, onSent }: MessageInputPro
       setSending(false);
       textareaRef.current?.focus();
     }
-  }, [content, roomId, dmId, dmUserId, sending, selectedFile, onSent]);
+  }, [content, roomId, dmId, dmUserId, sending, selectedFile, onSent, replyingTo, onClearReply]);
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -114,6 +124,20 @@ export function MessageInput({ roomId, dmId, dmUserId, onSent }: MessageInputPro
 
   return (
     <div className="border-t p-3">
+      {replyingTo && (
+        <div className="mb-1 flex items-center gap-2 rounded-md border-l-2 border-primary/40 bg-muted/50 px-3 py-1.5 text-sm">
+          <span className="text-xs text-muted-foreground">Replying to <strong>@{replyingTo.username}</strong></span>
+          <span className="truncate text-xs text-muted-foreground">{replyingTo.content.slice(0, 80)}</span>
+          <button
+            type="button"
+            onClick={onClearReply}
+            className="ml-auto shrink-0 text-muted-foreground hover:text-foreground"
+            aria-label="Cancel reply"
+          >
+            ✕
+          </button>
+        </div>
+      )}
       {error && (
         <p className="mb-1 text-xs text-destructive">{error}</p>
       )}

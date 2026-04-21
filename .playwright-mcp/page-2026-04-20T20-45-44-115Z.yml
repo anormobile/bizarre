@@ -1,0 +1,10 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - paragraph [ref=e3]:
+      - text: Signed in as
+      - generic [ref=e4]: "@phase3_1776717878"
+    - button "Sign out" [ref=e5]
+    - generic [ref=e6]:
+      - paragraph [ref=e7]: "WebSocket: connected"
+      - paragraph
+  - alert [ref=e8]

@@ -1,0 +1,25 @@
+- generic [active] [ref=e1]:
+  - alert [ref=e14]
+  - generic [ref=e15]:
+    - banner [ref=e16]:
+      - generic [ref=e17]:
+        - generic [ref=e18]: "@testfixuser"
+        - generic [ref=e19]:
+          - paragraph [ref=e20]: "WebSocket: connected"
+          - paragraph
+      - button "Sign out" [ref=e21]
+    - generic [ref=e22]:
+      - complementary [ref=e23]:
+        - generic [ref=e24]:
+          - button "Create room" [ref=e25]
+          - button "Browse public" [ref=e26]
+        - navigation [ref=e27]:
+          - paragraph [ref=e28]: No rooms yet
+        - generic [ref=e29]:
+          - heading "Contacts" [level=3] [ref=e30]
+          - generic [ref=e31]:
+            - button "Add contact" [ref=e32]
+            - button "Requests" [ref=e33]
+          - paragraph [ref=e34]: No contacts yet
+      - main [ref=e35]:
+        - paragraph [ref=e37]: Select a room to view messages.

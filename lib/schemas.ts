@@ -39,6 +39,7 @@ export const sendMessageInputSchema = z
     dmId: z.number().int().positive().optional(),
     userId: z.string().uuid().optional(),
     content: z.string().min(1).max(3072),
+    replyToId: z.number().int().positive().optional(),
   })
   .refine(
     (v) =>

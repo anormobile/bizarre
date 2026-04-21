@@ -1,0 +1,13 @@
+- generic [ref=e1]:
+  - alert [ref=e14]
+  - generic [ref=e110]:
+    - generic [ref=e112]: Sign in
+    - generic [ref=e113]:
+      - generic [ref=e114]:
+        - textbox "Email or username" [active] [ref=e115]
+        - textbox "Password" [ref=e116]
+        - button "Sign in" [ref=e117]
+      - paragraph [ref=e118]:
+        - text: No account?
+        - link "Register" [ref=e119] [cursor=pointer]:
+          - /url: /register

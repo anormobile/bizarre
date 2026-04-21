@@ -8,6 +8,7 @@ interface MessageBubbleProps {
   isOwn: boolean;
   onEdit: (id: number, content: string) => void;
   onDelete: (id: number) => void;
+  onReply?: (message: MessageView) => void;
   viewerRoomRole?: 'owner' | 'admin' | 'member' | null;
 }
 
@@ -46,7 +47,7 @@ function AttachmentRenderer({ attachment }: { attachment: AttachmentView }) {
   );
 }
 
-export function MessageBubble({ message, isOwn, onEdit, onDelete, viewerRoomRole }: MessageBubbleProps) {
+export function MessageBubble({ message, isOwn, onEdit, onDelete, onReply, viewerRoomRole }: MessageBubbleProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(message.content);
   const [saving, setSaving] = useState(false);
@@ -71,39 +72,56 @@ export function MessageBubble({ message, isOwn, onEdit, onDelete, viewerRoomRole
 
   return (
     <div className="group flex flex-col gap-0.5 px-3 py-1 hover:bg-muted/50">
+      {message.replyTo && (
+        <div className="ml-2 flex items-center gap-1 border-l-2 border-primary/40 pl-2 text-xs text-muted-foreground">
+          <span className="font-medium">@{message.replyTo.username}</span>
+          <span className="truncate max-w-xs">{message.replyTo.content.slice(0, 100)}</span>
+        </div>
+      )}
       <div className="flex items-baseline gap-2">
         <span className="text-sm font-semibold">@{message.username}</span>
         <span className="text-xs text-muted-foreground">{time}</span>
         {message.editedAt && !isDeleted && (
           <span className="text-xs text-muted-foreground italic">(edited)</span>
         )}
-        {isOwn && !isDeleted && !editing && (
+        {!isDeleted && !editing && (
           <span className="ml-auto hidden gap-2 group-hover:flex">
-            <button
-              type="button"
-              onClick={() => { setDraft(message.content); setEditing(true); }}
-              className="text-xs text-muted-foreground hover:text-foreground"
-            >
-              Edit
-            </button>
-            <button
-              type="button"
-              onClick={() => onDelete(message.id)}
-              className="text-xs text-muted-foreground hover:text-destructive"
-            >
-              Delete
-            </button>
-          </span>
-        )}
-        {!isOwn && !isDeleted && message.roomId != null && (viewerRoomRole === "owner" || viewerRoomRole === "admin") && (
-          <span className="ml-auto hidden gap-2 group-hover:flex">
-            <button
-              type="button"
-              onClick={() => onDelete(message.id)}
-              className="text-xs text-muted-foreground hover:text-destructive"
-            >
-              Delete
-            </button>
+            {onReply && (
+              <button
+                type="button"
+                onClick={() => onReply(message)}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                Reply
+              </button>
+            )}
+            {isOwn && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => { setDraft(message.content); setEditing(true); }}
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onDelete(message.id)}
+                  className="text-xs text-muted-foreground hover:text-destructive"
+                >
+                  Delete
+                </button>
+              </>
+            )}
+            {!isOwn && message.roomId != null && (viewerRoomRole === "owner" || viewerRoomRole === "admin") && (
+              <button
+                type="button"
+                onClick={() => onDelete(message.id)}
+                className="text-xs text-muted-foreground hover:text-destructive"
+              >
+                Delete
+              </button>
+            )}
           </span>
         )}
       </div>

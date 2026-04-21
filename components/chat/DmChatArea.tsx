@@ -20,6 +20,7 @@ export function DmChatArea({ friendUserId, friendUsername, currentUserId, eventB
   const [initialLoad, setInitialLoad] = useState(true);
   const [notFriends, setNotFriends] = useState(false);
   const [dmId, setDmId] = useState<number | null>(null);
+  const [replyingTo, setReplyingTo] = useState<{ id: number; content: string; username: string } | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const loadingOlder = useRef(false);
 
@@ -203,6 +204,7 @@ export function DmChatArea({ friendUserId, friendUsername, currentUserId, eventB
           currentUserId={currentUserId}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          onReply={(msg) => setReplyingTo({ id: msg.id, content: msg.content, username: msg.username })}
           onScroll={handleScroll}
         />
       )}
@@ -210,6 +212,8 @@ export function DmChatArea({ friendUserId, friendUsername, currentUserId, eventB
         dmId={dmId ?? undefined}
         dmUserId={dmId === null ? friendUserId : undefined}
         onSent={handleSent}
+        replyingTo={replyingTo}
+        onClearReply={() => setReplyingTo(null)}
       />
     </div>
   );

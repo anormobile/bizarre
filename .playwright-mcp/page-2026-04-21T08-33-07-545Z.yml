@@ -1,0 +1,31 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]: "@alice_1776759148"
+        - generic [ref=e6]:
+          - paragraph [ref=e7]: "WebSocket: connected"
+          - paragraph
+      - button "Sign out" [ref=e63]
+    - generic [ref=e9]:
+      - complementary [ref=e10]:
+        - generic [ref=e11]:
+          - button "Create room" [ref=e64]
+          - button "Browse public" [ref=e65]
+        - navigation [ref=e14]:
+          - button "#room_1776759148 1" [ref=e66]:
+            - generic [ref=e67]: "#room_1776759148"
+            - generic [ref=e68]: "1"
+        - generic [ref=e16]:
+          - heading "Contacts" [level=3] [ref=e69]
+          - generic [ref=e18]:
+            - button "Add contact" [ref=e70]
+            - button "Requests" [ref=e71]
+          - button "presence-offline @bob_1776759148 Remove" [ref=e72] [cursor=pointer]:
+            - generic [ref=e23]:
+              - generic "presence-offline" [ref=e73]
+              - text: "@bob_1776759148"
+            - button "Remove" [ref=e74]
+      - main [ref=e27]:
+        - paragraph [ref=e29]: Select a room or contact to view messages.
+  - alert [ref=e30]

@@ -223,6 +223,8 @@ export async function POST(request: Request) {
     editedAt: null,
     deletedAt: null,
     attachments: [attachmentView],
+    replyToId: null,
+    replyTo: null,
   };
 
   if (resolvedRoomId) {

@@ -62,11 +62,11 @@ export async function GET(
   }
   const dmId = dmRows[0]!.id;
 
-  let msgRows: { id: number; dm_id: number | null; room_id: number | null; user_id: string; username: string; content: string; created_at: Date; edited_at: Date | null; deleted_at: Date | null }[];
+  let msgRows: { id: number; dm_id: number | null; room_id: number | null; user_id: string; username: string; content: string; reply_to_id: number | null; created_at: Date; edited_at: Date | null; deleted_at: Date | null }[];
 
   if (before !== undefined) {
     msgRows = await sql<typeof msgRows>`
-      SELECT m.id, m.dm_id, m.room_id, m.user_id, u.username, m.content, m.created_at, m.edited_at, m.deleted_at
+      SELECT m.id, m.dm_id, m.room_id, m.user_id, u.username, m.content, m.reply_to_id, m.created_at, m.edited_at, m.deleted_at
       FROM messages m
       JOIN users u ON u.id = m.user_id
       WHERE m.dm_id = ${dmId} AND m.deleted_at IS NULL AND m.id < ${before}
@@ -75,7 +75,7 @@ export async function GET(
     `;
   } else {
     msgRows = await sql<typeof msgRows>`
-      SELECT m.id, m.dm_id, m.room_id, m.user_id, u.username, m.content, m.created_at, m.edited_at, m.deleted_at
+      SELECT m.id, m.dm_id, m.room_id, m.user_id, u.username, m.content, m.reply_to_id, m.created_at, m.edited_at, m.deleted_at
       FROM messages m
       JOIN users u ON u.id = m.user_id
       WHERE m.dm_id = ${dmId} AND m.deleted_at IS NULL
@@ -105,6 +105,19 @@ export async function GET(
     }
   }
 
+  const replyIds = msgRows.map((r) => r.reply_to_id).filter((id): id is number => id !== null);
+  const replyMap = new Map<number, import("@/lib/types").ReplyToView>();
+  if (replyIds.length > 0) {
+    const replyRows = await sql<{ id: number; content: string; username: string }[]>`
+      SELECT m.id, m.content, u.username
+      FROM messages m JOIN users u ON u.id = m.user_id
+      WHERE m.id = ANY(${replyIds})
+    `;
+    for (const r of replyRows) {
+      replyMap.set(r.id, { id: r.id, content: r.content, username: r.username });
+    }
+  }
+
   const messages: MessageView[] = msgRows.map((r) => ({
     id: r.id,
     roomId: r.room_id,
@@ -116,6 +129,8 @@ export async function GET(
     editedAt: r.edited_at ? r.edited_at.toISOString() : null,
     deletedAt: r.deleted_at ? r.deleted_at.toISOString() : null,
     attachments: attachmentsByMessage.get(r.id) ?? [],
+    replyToId: r.reply_to_id,
+    replyTo: r.reply_to_id ? (replyMap.get(r.reply_to_id) ?? null) : null,
   }));
 
   const nextCursor = messages.length === limit ? messages[messages.length - 1]!.id : null;

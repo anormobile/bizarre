@@ -1,6 +1,7 @@
 import sql from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { userIdParamSchema } from "@/lib/schemas";
+import { broadcast } from "@/lib/websocket";
 import type { SessionRow, FriendshipRow } from "@/lib/types";
 
 async function authenticate(): Promise<SessionRow | null> {
@@ -42,10 +43,20 @@ export async function POST(
     return Response.json({ error: "request not found" }, { status: 404 });
   }
 
+  const requester = row.requested_by;
+
   await sql`
     DELETE FROM friendships
     WHERE user_a = ${userA} AND user_b = ${userB}
   `;
+
+  if (requester !== me) {
+    broadcast([requester], {
+      type: "FRIEND_REQUEST_DECLINED",
+      payload: { userId: me },
+      timestamp: Date.now(),
+    });
+  }
 
   return Response.json({ ok: true }, { status: 200 });
 }

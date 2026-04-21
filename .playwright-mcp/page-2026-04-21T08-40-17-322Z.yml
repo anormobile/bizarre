@@ -1,0 +1,57 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]: "@alice_1776759148"
+        - generic [ref=e6]:
+          - paragraph [ref=e7]: "WebSocket: connected"
+          - paragraph
+      - button "Sign out" [ref=e174]
+    - generic [ref=e9]:
+      - complementary [ref=e10]:
+        - generic [ref=e11]:
+          - button "Create room" [ref=e175]
+          - button "Browse public" [ref=e176]
+        - navigation [ref=e14]:
+          - button "#throw_1776759148 1" [ref=e177]:
+            - generic [ref=e178]: "#throw_1776759148"
+            - generic [ref=e179]: "1"
+          - button "#private_1776759148 1" [ref=e180]:
+            - generic [ref=e181]: "#private_1776759148"
+            - generic [ref=e182]: "1"
+          - button "#room_1776759148 1" [active] [ref=e183]:
+            - generic [ref=e67]: "#room_1776759148"
+            - generic [ref=e68]: "1"
+        - generic [ref=e16]:
+          - heading "Contacts" [level=3] [ref=e184]
+          - generic [ref=e18]:
+            - button "Add contact" [ref=e185]
+            - button "Requests" [ref=e186]
+          - button "presence-offline @bob_1776759148 Remove" [ref=e187] [cursor=pointer]:
+            - generic [ref=e23]:
+              - generic "presence-offline" [ref=e188]
+              - text: "@bob_1776759148"
+            - button "Remove" [ref=e189]
+      - generic [ref=e190]:
+        - generic [ref=e192]: "#room_1776759148"
+        - generic [ref=e194]:
+          - generic [ref=e195]:
+            - generic [ref=e196]: "@bob_1776759148"
+            - generic [ref=e197]: 10:39:54 AM
+          - paragraph [ref=e198]: hello world
+        - generic [ref=e200]:
+          - button "Attach" [ref=e201]:
+            - img [ref=e202]
+          - textbox "Type a message…" [ref=e204]
+          - button "Send" [disabled] [ref=e205]
+      - complementary [ref=e206]:
+        - generic [ref=e208]: Members — 2
+        - list [ref=e209]:
+          - listitem [ref=e210]:
+            - generic "presence-online" [ref=e211]
+            - generic [ref=e212]: "@alice_1776759148"
+            - generic [ref=e213]: owner
+          - listitem [ref=e214]:
+            - generic "presence-offline" [ref=e215]
+            - generic [ref=e216]: "@bob_1776759148"
+  - alert [ref=e30]

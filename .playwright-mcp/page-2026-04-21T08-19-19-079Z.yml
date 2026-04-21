@@ -1,0 +1,25 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]: "@eve_1776759148"
+        - generic [ref=e6]:
+          - paragraph [ref=e7]: "WebSocket: connected"
+          - paragraph
+      - button "Sign out" [ref=e8]
+    - generic [ref=e9]:
+      - complementary [ref=e10]:
+        - generic [ref=e11]:
+          - button "Create room" [ref=e12]
+          - button "Browse public" [ref=e13]
+        - navigation [ref=e14]:
+          - paragraph [ref=e15]: No rooms yet
+        - generic [ref=e16]:
+          - heading "Contacts" [level=3] [ref=e17]
+          - generic [ref=e18]:
+            - button "Add contact" [ref=e19]
+            - button "Requests" [ref=e20]
+          - paragraph [ref=e21]: No contacts yet
+      - main [ref=e22]:
+        - paragraph [ref=e24]: Select a room or contact to view messages.
+  - alert [ref=e25]

@@ -22,6 +22,7 @@ export function ChatArea({ room, currentUserId, eventBus, viewerRoomRole }: Chat
   const [nextCursor, setNextCursor] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
+  const [replyingTo, setReplyingTo] = useState<{ id: number; content: string; username: string } | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const loadingOlder = useRef(false);
 
@@ -151,11 +152,16 @@ export function ChatArea({ room, currentUserId, eventBus, viewerRoomRole }: Chat
           currentUserId={currentUserId}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          onReply={(msg) => setReplyingTo({ id: msg.id, content: msg.content, username: msg.username })}
           onScroll={handleScroll}
           viewerRoomRole={viewerRoomRole}
         />
       )}
-      <MessageInput roomId={room.id} />
+      <MessageInput
+        roomId={room.id}
+        replyingTo={replyingTo}
+        onClearReply={() => setReplyingTo(null)}
+      />
     </div>
   );
 }

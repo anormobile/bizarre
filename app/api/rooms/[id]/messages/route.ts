@@ -19,6 +19,7 @@ interface MessageJoinRow {
   dm_id: number | null;
   user_id: string;
   content: string;
+  reply_to_id: number | null;
   edited_at: Date | null;
   deleted_at: Date | null;
   created_at: Date;
@@ -64,7 +65,8 @@ export async function GET(
   const beforeVal = before ?? null;
 
   const rows = await sql<MessageJoinRow[]>`
-    SELECT m.id, m.room_id, m.dm_id, m.user_id, m.content, m.edited_at, m.deleted_at, m.created_at, u.username
+    SELECT m.id, m.room_id, m.dm_id, m.user_id, m.content, m.reply_to_id,
+           m.edited_at, m.deleted_at, m.created_at, u.username
     FROM messages m
     JOIN users u ON u.id = m.user_id
     WHERE m.room_id = ${roomId}
@@ -94,6 +96,19 @@ export async function GET(
     }
   }
 
+  const replyIds = rows.map((r) => r.reply_to_id).filter((id): id is number => id !== null);
+  const replyMap = new Map<number, import("@/lib/types").ReplyToView>();
+  if (replyIds.length > 0) {
+    const replyRows = await sql<{ id: number; content: string; username: string }[]>`
+      SELECT m.id, m.content, u.username
+      FROM messages m JOIN users u ON u.id = m.user_id
+      WHERE m.id = ANY(${replyIds})
+    `;
+    for (const r of replyRows) {
+      replyMap.set(r.id, { id: r.id, content: r.content, username: r.username });
+    }
+  }
+
   const messages: MessageView[] = rows.map((r) => ({
     id: r.id,
     roomId: r.room_id,
@@ -105,6 +120,8 @@ export async function GET(
     editedAt: r.edited_at ? r.edited_at.toISOString() : null,
     deletedAt: r.deleted_at ? r.deleted_at.toISOString() : null,
     attachments: attachmentsByMessage.get(r.id) ?? [],
+    replyToId: r.reply_to_id,
+    replyTo: r.reply_to_id ? (replyMap.get(r.reply_to_id) ?? null) : null,
   }));
 
   const nextCursor = rows.length === limit ? rows[rows.length - 1]!.id : null;

@@ -82,6 +82,8 @@ export async function PATCH(
     editedAt: row.edited_at ? row.edited_at.toISOString() : null,
     deletedAt: null,
     attachments: [],
+    replyToId: row.reply_to_id ?? null,
+    replyTo: null,
   };
 
   if (row.dm_id !== null) {

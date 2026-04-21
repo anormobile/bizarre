@@ -59,7 +59,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "invalid input" }, { status: 400 });
   }
 
-  const { roomId, dmId: bodyDmId, userId: bodyUserId, content } = parsed.data;
+  const { roomId, dmId: bodyDmId, userId: bodyUserId, content, replyToId } = parsed.data;
   const userId = session.user_id;
 
   if (roomId) {
@@ -79,9 +79,23 @@ export async function POST(request: Request) {
       return Response.json({ error: "not a member" }, { status: 403 });
     }
 
+    let replyTo: import("@/lib/types").ReplyToView | null = null;
+    if (replyToId) {
+      const refs = await sql<{ id: number; room_id: number | null; content: string; username: string }[]>`
+        SELECT m.id, m.room_id, m.content, u.username
+        FROM messages m JOIN users u ON u.id = m.user_id
+        WHERE m.id = ${replyToId}
+      `;
+      if (!refs[0] || Number(refs[0].room_id) !== Number(roomId)) {
+        return Response.json({ error: "invalid reply_to" }, { status: 400 });
+      }
+      replyTo = { id: refs[0].id, content: refs[0].content, username: refs[0].username };
+    }
+
+    const replyVal = replyToId ?? null;
     const inserted = await sql<MessageRow[]>`
-      INSERT INTO messages (room_id, user_id, content)
-      VALUES (${roomId}, ${userId}, ${content})
+      INSERT INTO messages (room_id, user_id, content, reply_to_id)
+      VALUES (${roomId}, ${userId}, ${content}, ${replyVal})
       RETURNING *
     `;
     const msg = inserted[0]!;
@@ -102,6 +116,8 @@ export async function POST(request: Request) {
       editedAt: null,
       deletedAt: null,
       attachments: [],
+      replyToId: msg.reply_to_id,
+      replyTo,
     };
 
     const memberIds = await sql<{ user_id: string }[]>`
@@ -143,9 +159,23 @@ export async function POST(request: Request) {
     dmId = dm.id;
   }
 
+  let dmReplyTo: import("@/lib/types").ReplyToView | null = null;
+  if (replyToId) {
+    const refs = await sql<{ id: number; dm_id: number | null; content: string; username: string }[]>`
+      SELECT m.id, m.dm_id, m.content, u.username
+      FROM messages m JOIN users u ON u.id = m.user_id
+      WHERE m.id = ${replyToId}
+    `;
+    if (!refs[0] || Number(refs[0].dm_id) !== Number(dmId)) {
+      return Response.json({ error: "invalid reply_to" }, { status: 400 });
+    }
+    dmReplyTo = { id: refs[0].id, content: refs[0].content, username: refs[0].username };
+  }
+
+  const dmReplyVal = replyToId ?? null;
   const inserted = await sql<MessageRow[]>`
-    INSERT INTO messages (dm_id, user_id, content)
-    VALUES (${dmId}, ${userId}, ${content})
+    INSERT INTO messages (dm_id, user_id, content, reply_to_id)
+    VALUES (${dmId}, ${userId}, ${content}, ${dmReplyVal})
     RETURNING *
   `;
   const msg = inserted[0]!;
@@ -166,6 +196,8 @@ export async function POST(request: Request) {
     editedAt: null,
     deletedAt: null,
     attachments: [],
+    replyToId: msg.reply_to_id,
+    replyTo: dmReplyTo,
   };
 
   broadcast(
