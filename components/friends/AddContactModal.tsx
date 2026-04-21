@@ -6,11 +6,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-  DialogTrigger,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import type { FriendRequestView, FriendView } from "@/lib/types";
 
 interface AddContactModalProps {
@@ -73,50 +69,53 @@ export function AddContactModal({ onSent, onAutoAccepted }: AddContactModalProps
         if (!val) reset();
       }}
     >
-      <DialogTrigger render={<Button variant="outline" size="sm" className="flex-1 text-xs" />}>
-        Add contact
-      </DialogTrigger>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="flex items-center justify-center gap-1 rounded-md bg-primary px-3 py-1 text-[11px] font-semibold text-white transition-colors hover:bg-primary-hover"
+      >
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M12 5V19M5 12H19" stroke="white" strokeWidth="2.5" strokeLinecap="round"/></svg>
+        + Add contact
+      </button>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add a contact</DialogTitle>
+          <DialogTitle>Add Contact</DialogTitle>
         </DialogHeader>
         {success ? (
-          <p className="py-4 text-center text-sm text-muted-foreground">Request sent!</p>
+          <p className="py-4 text-center text-sm font-semibold text-online">✓ Request sent!</p>
         ) : (
-          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-            <div className="flex flex-col gap-1">
-              <label htmlFor="friend-username" className="text-xs font-medium text-muted-foreground">
-                Username
-              </label>
-              <Input
-                id="friend-username"
-                placeholder="username"
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
+            <div>
+              <label className="mb-[5px] block text-xs font-semibold text-text-2">Search by username</label>
+              <input
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
+                placeholder="Enter username…"
+                autoFocus
                 required
                 maxLength={48}
+                className="w-full rounded-[9px] border-[1.5px] border-border bg-surface px-[13px] py-2.5 text-sm text-text outline-none transition-colors focus:border-primary"
               />
             </div>
-            <div className="flex flex-col gap-1">
-              <label htmlFor="friend-note" className="text-xs font-medium text-muted-foreground">
-                Note (optional)
-              </label>
+            <div>
+              <label className="mb-[5px] block text-xs font-semibold text-text-2">Optional note</label>
               <textarea
-                id="friend-note"
-                placeholder="Hey, let's connect!"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                maxLength={200}
+                placeholder="Hey! Let's connect."
                 rows={2}
-                className="rounded-md border bg-transparent px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                maxLength={200}
+                className="w-full resize-none rounded-[9px] border-[1.5px] border-border bg-surface px-[13px] py-2.5 text-sm text-text outline-none transition-colors focus:border-primary"
               />
             </div>
-            {error && <p className="text-xs text-destructive">{error}</p>}
-            <DialogFooter>
-              <Button type="submit" disabled={loading}>
-                {loading ? "Sending\u2026" : "Send request"}
-              </Button>
-            </DialogFooter>
+            {error && <p className="text-xs text-unread">{error}</p>}
+            <button
+              type="submit"
+              disabled={loading || !username.trim()}
+              className="w-full rounded-[10px] bg-primary py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {loading ? "Sending\u2026" : "Send request"}
+            </button>
           </form>
         )}
       </DialogContent>

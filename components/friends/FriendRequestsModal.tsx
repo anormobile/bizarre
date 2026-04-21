@@ -6,9 +6,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { FriendRequestsBadge } from "@/components/friends/FriendRequestsBadge";
 import type { FriendRequestView, FriendView } from "@/lib/types";
 
@@ -32,32 +30,36 @@ export function FriendRequestsModal({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button variant="outline" size="sm" className="flex-1 text-xs gap-1.5" />}>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="flex items-center justify-center gap-1.5 rounded-md border border-border px-2 py-1 text-[11px] font-medium text-text-2 transition-colors hover:border-primary hover:text-primary"
+      >
         Requests
         <FriendRequestsBadge count={incoming.length} />
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      </button>
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Friend requests</DialogTitle>
         </DialogHeader>
-        <div className="flex gap-1 rounded-md bg-muted p-0.5">
+        <div className="flex overflow-hidden rounded-lg border border-border">
           <button
-            className={`flex-1 rounded-sm px-3 py-1 text-xs font-medium transition-colors ${tab === "incoming" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+            className={`flex-1 py-2.5 text-[13px] font-medium transition-colors ${tab === 'incoming' ? 'bg-primary-light text-primary' : 'text-text-2 hover:bg-bg'}`}
             onClick={() => setTab("incoming")}
           >
             Incoming ({incoming.length})
           </button>
           <button
-            className={`flex-1 rounded-sm px-3 py-1 text-xs font-medium transition-colors ${tab === "outgoing" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+            className={`flex-1 border-l border-border py-2.5 text-[13px] font-medium transition-colors ${tab === 'outgoing' ? 'bg-primary-light text-primary' : 'text-text-2 hover:bg-bg'}`}
             onClick={() => setTab("outgoing")}
           >
             Outgoing ({outgoing.length})
           </button>
         </div>
-        <div className="flex max-h-64 flex-col gap-1 overflow-y-auto">
+        <div className="flex max-h-64 flex-col gap-2 overflow-y-auto">
           {tab === "incoming" && (
             incoming.length === 0 ? (
-              <p className="py-4 text-center text-xs text-muted-foreground">No requests</p>
+              <p className="py-4 text-center text-sm text-text-3">No requests</p>
             ) : (
               incoming.map((r) => (
                 <IncomingRow key={r.userId} req={r} onAccepted={onAccepted} onDeclined={onDeclined} />
@@ -66,7 +68,7 @@ export function FriendRequestsModal({
           )}
           {tab === "outgoing" && (
             outgoing.length === 0 ? (
-              <p className="py-4 text-center text-xs text-muted-foreground">No requests</p>
+              <p className="py-4 text-center text-sm text-text-3">No requests</p>
             ) : (
               outgoing.map((r) => (
                 <OutgoingRow key={r.userId} req={r} onCancelled={onCancelledOutgoing} />
@@ -128,25 +130,27 @@ function IncomingRow({
   }
 
   return (
-    <div className="flex items-center justify-between gap-2 rounded-md border px-3 py-2">
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-border px-3.5 py-2.5">
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">@{req.username}</p>
-        {req.note && <p className="truncate text-xs text-muted-foreground">{req.note}</p>}
-        {error && <p className="text-[11px] text-destructive">{error}</p>}
+        <p className="truncate text-sm font-semibold text-text">@{req.username}</p>
+        {req.note && <p className="truncate text-xs text-text-3">{req.note}</p>}
+        {error && <p className="text-[11px] text-unread">{error}</p>}
       </div>
-      <div className="flex gap-1">
-        <Button size="sm" className="h-7 px-2 text-xs" onClick={handleAccept} disabled={loading !== null}>
+      <div className="flex gap-1.5">
+        <button
+          onClick={handleAccept}
+          disabled={loading !== null}
+          className="rounded-lg bg-primary px-3 py-1 text-xs font-semibold text-white disabled:opacity-50"
+        >
           {loading === "accept" ? "\u2026" : "Accept"}
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-7 px-2 text-xs"
+        </button>
+        <button
           onClick={handleDecline}
           disabled={loading !== null}
+          className="rounded-lg border border-border px-3 py-1 text-xs font-medium text-text-2 disabled:opacity-50"
         >
           {loading === "decline" ? "\u2026" : "Decline"}
-        </Button>
+        </button>
       </div>
     </div>
   );
@@ -181,21 +185,19 @@ function OutgoingRow({
   }
 
   return (
-    <div className="flex items-center justify-between gap-2 rounded-md border px-3 py-2">
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-border px-3.5 py-2.5">
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">@{req.username}</p>
-        {req.note && <p className="truncate text-xs text-muted-foreground">{req.note}</p>}
-        {error && <p className="text-[11px] text-destructive">{error}</p>}
+        <p className="truncate text-sm font-semibold text-text">@{req.username}</p>
+        {req.note && <p className="truncate text-xs text-text-3">{req.note}</p>}
+        {error && <p className="text-[11px] text-unread">{error}</p>}
       </div>
-      <Button
-        variant="outline"
-        size="sm"
-        className="h-7 px-2 text-xs"
+      <button
         onClick={handleCancel}
         disabled={loading}
+        className="rounded-lg border border-border px-3 py-1 text-xs font-medium text-text-2 disabled:opacity-50"
       >
         {loading ? "\u2026" : "Cancel"}
-      </Button>
+      </button>
     </div>
   );
 }

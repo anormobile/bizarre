@@ -6,9 +6,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import type { RoomSummary } from "@/lib/types";
 
 interface Invitation {
@@ -73,27 +71,41 @@ export function InvitationsModal({ onJoined }: InvitationsModalProps) {
         if (val) fetchInvitations();
       }}
     >
-      <DialogTrigger render={<Button variant="outline" size="sm" className="w-full" />}>
+      <button
+        type="button"
+        onClick={() => { setOpen(true); fetchInvitations(); }}
+        className="mx-2.5 mb-1 rounded-md border border-border px-2 py-1 text-[11px] font-medium text-text-2 transition-colors hover:border-primary hover:text-primary"
+      >
         Invitations{invitations.length > 0 ? ` (${invitations.length})` : ""}
-      </DialogTrigger>
+      </button>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Room Invitations</DialogTitle>
         </DialogHeader>
-        {loading && <p className="text-sm text-muted-foreground">Loading…</p>}
+        {loading && <p className="text-sm text-text-3">Loading…</p>}
         {!loading && invitations.length === 0 && (
-          <p className="text-sm text-muted-foreground">No pending invitations.</p>
+          <p className="py-4 text-center text-sm text-text-3">No pending invitations.</p>
         )}
         <div className="flex max-h-64 flex-col gap-2 overflow-y-auto">
           {invitations.map((inv) => (
-            <div key={inv.id} className="flex items-center justify-between rounded-lg border px-3 py-2">
+            <div key={inv.id} className="flex items-center justify-between rounded-xl border border-border px-3.5 py-2.5">
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium">#{inv.roomName}</p>
-                <p className="text-xs text-muted-foreground">from @{inv.invitedByUsername}</p>
+                <p className="text-sm font-semibold text-text">#{inv.roomName}</p>
+                <p className="text-xs text-text-3">from @{inv.invitedByUsername}</p>
               </div>
-              <div className="flex gap-1">
-                <Button size="sm" onClick={() => handleAccept(inv)}>Accept</Button>
-                <Button size="sm" variant="outline" onClick={() => handleDecline(inv)}>Decline</Button>
+              <div className="flex gap-1.5">
+                <button
+                  onClick={() => handleAccept(inv)}
+                  className="rounded-lg bg-primary px-3 py-1 text-xs font-semibold text-white"
+                >
+                  Accept
+                </button>
+                <button
+                  onClick={() => handleDecline(inv)}
+                  className="rounded-lg border border-border px-3 py-1 text-xs font-medium text-text-2"
+                >
+                  Decline
+                </button>
               </div>
             </div>
           ))}

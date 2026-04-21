@@ -6,11 +6,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-  DialogTrigger,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import type { RoomSummary } from "@/lib/types";
 
 interface CreateRoomModalProps {
@@ -71,73 +67,83 @@ export function CreateRoomModal({ onCreated }: CreateRoomModalProps) {
         if (!val) reset();
       }}
     >
-      <DialogTrigger render={<Button size="sm" className="w-full" />}>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="flex w-full items-center justify-center gap-1.5 rounded-[9px] border-[1.5px] border-dashed border-border px-2.5 py-[7px] text-xs text-text-2 transition-colors hover:border-primary hover:text-primary"
+      >
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/></svg>
         Create room
-      </DialogTrigger>
+      </button>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create a room</DialogTitle>
+          <DialogTitle>Create a new room</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1">
-            <label htmlFor="room-name" className="text-xs font-medium text-muted-foreground">
-              Name
-            </label>
-            <Input
-              id="room-name"
-              placeholder="general"
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
+          <div>
+            <label className="mb-[5px] block text-xs font-semibold text-text-2">Room name</label>
+            <input
               value={name}
               onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. my-room"
+              autoFocus
               required
               minLength={3}
               maxLength={48}
               pattern="^[a-zA-Z0-9_-]+$"
+              className="w-full rounded-[9px] border-[1.5px] border-border bg-surface px-[13px] py-2.5 text-sm text-text outline-none transition-colors focus:border-primary"
             />
           </div>
-          <div className="flex flex-col gap-1">
-            <label htmlFor="room-desc" className="text-xs font-medium text-muted-foreground">
-              Description (optional)
+          <div>
+            <label className="mb-[5px] block text-xs font-semibold text-text-2">
+              Description <span className="font-normal text-text-3">(optional)</span>
             </label>
-            <Input
-              id="room-desc"
-              placeholder="A place for everyone"
+            <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              placeholder="What is this room about?"
+              rows={2}
               maxLength={256}
+              className="w-full resize-none rounded-[9px] border-[1.5px] border-border bg-surface px-[13px] py-2.5 text-sm text-text outline-none transition-colors focus:border-primary"
             />
           </div>
-          <fieldset className="flex gap-4">
-            <label className="flex items-center gap-1.5 text-sm">
-              <input
-                type="radio"
-                name="visibility"
-                value="public"
-                checked={visibility === "public"}
-                onChange={() => setVisibility("public")}
-                className="accent-primary"
-              />
-              Public
-            </label>
-            <label className="flex items-center gap-1.5 text-sm">
-              <input
-                type="radio"
-                name="visibility"
-                value="private"
-                checked={visibility === "private"}
-                onChange={() => setVisibility("private")}
-                className="accent-primary"
-              />
-              Private
-            </label>
-          </fieldset>
-          {error && (
-            <p className="text-xs text-destructive">{error}</p>
-          )}
-          <DialogFooter>
-            <Button type="submit" disabled={loading}>
-              {loading ? "Creating\u2026" : "Create"}
-            </Button>
-          </DialogFooter>
+          <div>
+            <label className="mb-2 block text-xs font-semibold text-text-2">Visibility</label>
+            <div className="flex gap-2.5">
+              {([
+                { v: 'public' as const, icon: '🌐', desc: 'Anyone can join' },
+                { v: 'private' as const, icon: '🔒', desc: 'Invite only' },
+              ]).map((opt) => (
+                <button
+                  key={opt.v}
+                  type="button"
+                  onClick={() => setVisibility(opt.v)}
+                  className={`flex-1 rounded-[10px] border-[1.5px] px-3 py-2.5 text-left transition-all ${
+                    visibility === opt.v
+                      ? 'border-primary bg-primary-light'
+                      : 'border-border hover:border-text-3'
+                  }`}
+                >
+                  <div className={`text-[13px] font-semibold ${visibility === opt.v ? 'text-primary' : 'text-text'}`}>
+                    {opt.icon} {opt.v.charAt(0).toUpperCase() + opt.v.slice(1)}
+                  </div>
+                  <div className="mt-px text-xs text-text-3">{opt.desc}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+          {error && <p className="text-xs text-unread">{error}</p>}
+          <button
+            type="submit"
+            disabled={loading || !name.trim()}
+            className={`w-full rounded-[10px] py-2.5 text-sm font-semibold transition-colors ${
+              name.trim()
+                ? 'bg-primary text-white hover:bg-primary-hover'
+                : 'bg-border text-text-3'
+            } disabled:cursor-not-allowed disabled:opacity-50`}
+          >
+            {loading ? "Creating\u2026" : "Create room"}
+          </button>
         </form>
       </DialogContent>
     </Dialog>
