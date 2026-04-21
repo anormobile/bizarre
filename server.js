@@ -19,8 +19,9 @@ const dbSql = postgres(DATABASE_URL);
 const connectionsByUser = new Map();
 globalThis.__bizarreWsConnections__ = connectionsByUser;
 
-/** @type {Map<string, string>} userId -> last known status */
-const userLastStatus = new Map();
+/** @type {Map<string, Map<import('ws').WebSocket, string>>} userId -> Map<ws, status> */
+const userConnectionStatuses = new Map();
+let wsIdCounter = 0;
 
 function parseCookies(header) {
   const map = {};
@@ -122,8 +123,10 @@ app.prepare().then(() => {
     if (!connectionsByUser.has(userId)) connectionsByUser.set(userId, new Set());
     connectionsByUser.get(userId).add(ws);
 
+    if (!userConnectionStatuses.has(userId)) userConnectionStatuses.set(userId, new Map());
+    userConnectionStatuses.get(userId).set(ws, "online");
+
     if (isFirstConnect) {
-      userLastStatus.set(userId, "online");
       try {
         await dbSql`
           INSERT INTO user_presence (user_id, status, updated_at)
@@ -153,21 +156,32 @@ app.prepare().then(() => {
         if (data.type === "PRESENCE_HEARTBEAT") {
           const newStatus = data.payload?.status;
           if (newStatus !== "online" && newStatus !== "afk") return;
-          const prev = userLastStatus.get(userId) || "online";
-          if (prev === newStatus) return;
-          userLastStatus.set(userId, newStatus);
+
+          const connStatuses = userConnectionStatuses.get(userId);
+          if (connStatuses) connStatuses.set(ws, newStatus);
+
+          const aggregated = connStatuses && [...connStatuses.values()].includes("online")
+            ? "online"
+            : "afk";
+
+          const prevRows = await dbSql`
+            SELECT status FROM user_presence WHERE user_id = ${userId}
+          `;
+          const prevAggregated = prevRows.length > 0 ? prevRows[0].status : "online";
+          if (prevAggregated === aggregated) return;
+
           try {
             await dbSql`
               INSERT INTO user_presence (user_id, status, updated_at)
-              VALUES (${userId}, ${newStatus}, NOW())
-              ON CONFLICT (user_id) DO UPDATE SET status = ${newStatus}, updated_at = NOW()
+              VALUES (${userId}, ${aggregated}, NOW())
+              ON CONFLICT (user_id) DO UPDATE SET status = ${aggregated}, updated_at = NOW()
             `;
           } catch (err) {
             console.error("presence heartbeat db error:", err);
           }
           const presenceMsg = JSON.stringify({
             type: "PRESENCE_CHANGED",
-            payload: { userId, status: newStatus },
+            payload: { userId, status: aggregated },
             timestamp: Date.now(),
           });
           for (const [, socks] of connectionsByUser) {
@@ -182,12 +196,47 @@ app.prepare().then(() => {
     });
 
     ws.on("close", async () => {
+      const connStatuses = userConnectionStatuses.get(userId);
+      if (connStatuses) {
+        connStatuses.delete(ws);
+        if (connStatuses.size === 0) userConnectionStatuses.delete(userId);
+      }
+
       const sockets = connectionsByUser.get(userId);
       if (sockets) {
         sockets.delete(ws);
-        if (sockets.size === 0) {
+        if (sockets.size > 0) {
+          const remaining = userConnectionStatuses.get(userId);
+          if (remaining && remaining.size > 0) {
+            const aggregated = [...remaining.values()].includes("online") ? "online" : "afk";
+            try {
+              const prevRows = await dbSql`SELECT status FROM user_presence WHERE user_id = ${userId}`;
+              const prevStatus = prevRows.length > 0 ? prevRows[0].status : "online";
+              if (prevStatus !== aggregated) {
+                await dbSql`
+                  INSERT INTO user_presence (user_id, status, updated_at)
+                  VALUES (${userId}, ${aggregated}, NOW())
+                  ON CONFLICT (user_id) DO UPDATE SET status = ${aggregated}, updated_at = NOW()
+                `;
+                const presenceMsg = JSON.stringify({
+                  type: "PRESENCE_CHANGED",
+                  payload: { userId, status: aggregated },
+                  timestamp: Date.now(),
+                });
+                for (const [, ss] of connectionsByUser) {
+                  for (const s of ss) {
+                    if (s.readyState === 1) {
+                      try { s.send(presenceMsg); } catch { /* swallow */ }
+                    }
+                  }
+                }
+              }
+            } catch (err) {
+              console.error("presence re-aggregate error:", err);
+            }
+          }
+        } else if (sockets.size === 0) {
           connectionsByUser.delete(userId);
-          userLastStatus.delete(userId);
           try {
             await dbSql`
               INSERT INTO user_presence (user_id, status, updated_at)
