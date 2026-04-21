@@ -86,6 +86,19 @@ export type RoomInvitationReceivedMessage = WsMessageBase<
   }
 >;
 
+export interface RoomMemberRoleChangedMessage extends WsMessageBase<
+  'ROOM_MEMBER_ROLE_CHANGED',
+  { roomId: number; userId: string; role: 'owner' | 'admin' | 'member' }
+> {}
+
+export interface RoomBanView {
+  userId: string;
+  username: string;
+  bannedBy: string | null;
+  bannedByUsername: string | null;
+  bannedAt: string;
+}
+
 export type WsMessage =
   | BroadcastTestMessage
   | MemberJoinedMessage
@@ -100,7 +113,8 @@ export type WsMessage =
   | FriendRequestDeclinedMessage
   | PresenceChangedMessage
   | UserBanNotifyMessage
-  | RoomInvitationReceivedMessage;
+  | RoomInvitationReceivedMessage
+  | RoomMemberRoleChangedMessage;
 
 export interface SessionRow {
   id: string;
@@ -244,6 +258,6 @@ export interface DmThreadView {
 export interface RoomMemberView {
   userId: string;
   username: string;
-  role: "owner" | "admin" | "member";
+  role: "owner" | "admin" | "member" | "pending";
   status: PresenceStatus;
 }

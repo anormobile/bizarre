@@ -39,6 +39,7 @@ export function Shell({ initialMine, currentUserId, currentUsername, afkIdleMs }
   const [friends, setFriends] = useState<FriendView[]>([]);
   const [incoming, setIncoming] = useState<FriendRequestView[]>([]);
   const [outgoing, setOutgoing] = useState<FriendRequestView[]>([]);
+  const [inviteCount, setInviteCount] = useState(0);
 
   useEffect(() => {
     fetch("/api/friends")
@@ -61,6 +62,12 @@ export function Shell({ initialMine, currentUserId, currentUsername, afkIdleMs }
           if (data.incoming) setIncoming(data.incoming);
           if (data.outgoing) setOutgoing(data.outgoing);
         }
+      })
+      .catch(() => {});
+    fetch("/api/invitations")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.invitations) setInviteCount(data.invitations.length);
       })
       .catch(() => {});
   }, []);
@@ -149,8 +156,9 @@ export function Shell({ initialMine, currentUserId, currentUsername, afkIdleMs }
           }
           setRoomMembers((prev) => {
             if (prev.length === 0) return prev;
-            if (prev.some((m) => m.userId === userId)) return prev;
-            return [...prev, { userId, username, role, status: "offline" as const }];
+            const filtered = prev.filter((m) => !(m.userId === userId && m.role === "pending"));
+            if (filtered.some((m) => m.userId === userId)) return filtered;
+            return [...filtered, { userId, username, role, status: "offline" as const }];
           });
           break;
         }
@@ -207,6 +215,20 @@ export function Shell({ initialMine, currentUserId, currentUsername, afkIdleMs }
           setOutgoing((prev) => prev.filter((r) => r.userId !== userId));
           break;
         }
+        case "ROOM_INVITATION_RECEIVED": {
+          setInviteCount((prev) => prev + 1);
+          break;
+        }
+        case "ROOM_MEMBER_ROLE_CHANGED": {
+          const { roomId } = msg.payload;
+          if (selectedRoomIdRef.current === roomId) {
+            fetch(`/api/rooms/${roomId}/members`)
+              .then((r) => (r.ok ? r.json() : null))
+              .then((data) => { if (data?.members) setRoomMembers(data.members); })
+              .catch(() => {});
+          }
+          break;
+        }
       }
 
       if (msg.type === "MESSAGE_NEW") {
@@ -255,7 +277,11 @@ export function Shell({ initialMine, currentUserId, currentUsername, afkIdleMs }
 
   const selectedRoom = mine.find((r) => r.id === selectedRoomId) ?? null;
   const selectedFriend = friends.find((f) => f.userId === selectedDmUserId) ?? null;
-  const viewerRoomRole = roomMembers.find((m) => m.userId === currentUserId)?.role ?? null;
+  const viewerRoomRole = (() => {
+    const role = roomMembers.find((m) => m.userId === currentUserId)?.role ?? null;
+    if (role === "pending") return null;
+    return role;
+  })();
 
   function handleViewChange(view: NavView) {
     if (view === 'public') {
@@ -306,6 +332,9 @@ export function Shell({ initialMine, currentUserId, currentUsername, afkIdleMs }
               onFriendsChange={setFriends}
               selectedDmUserId={selectedDmUserId}
               onSelectDm={handleSelectDm}
+              inviteCount={inviteCount}
+              onInviteCountReset={() => setInviteCount(0)}
+              onJoinedRoom={handleJoined}
             />
             {selectedRoom ? (
               <>
@@ -389,6 +418,12 @@ export function Shell({ initialMine, currentUserId, currentUsername, afkIdleMs }
           onRoomDeleted={() => {
             setMine((prev) => prev.filter((r) => r.id !== selectedRoom.id));
             setSelectedRoomId(null);
+          }}
+          onMembersRefresh={() => {
+            fetch(`/api/rooms/${selectedRoom.id}/members`)
+              .then((r) => (r.ok ? r.json() : null))
+              .then((data) => { if (data?.members) setRoomMembers(data.members); })
+              .catch(() => {});
           }}
         />
       )}

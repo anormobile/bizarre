@@ -1,6 +1,6 @@
 import sql from "@/lib/db";
 import { getSession } from "@/lib/session";
-import { roomMemberPathSchema } from "@/lib/schemas";
+import { roomMemberPathSchema, roomMemberRoleSchema } from "@/lib/schemas";
 import { broadcast, removeUserFromRoomFanout } from "@/lib/websocket";
 import type { SessionRow } from "@/lib/types";
 
@@ -89,6 +89,75 @@ export async function DELETE(
   });
 
   removeUserFromRoomFanout(roomId, targetUserId);
+
+  return Response.json({ ok: true });
+}
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string; userId: string }> },
+) {
+  const session = await authenticate();
+  if (!session) return Response.json({ error: "unauthorized" }, { status: 401 });
+
+  const raw = await params;
+  const parsed = roomMemberPathSchema.safeParse(raw);
+  if (!parsed.success) {
+    return Response.json({ error: "invalid input" }, { status: 400 });
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return Response.json({ error: "invalid input" }, { status: 400 });
+  }
+  const bodyParsed = roomMemberRoleSchema.safeParse(body);
+  if (!bodyParsed.success) {
+    return Response.json({ error: "invalid input" }, { status: 400 });
+  }
+
+  const { id: roomId, userId: targetUserId } = parsed.data;
+  const newRole = bodyParsed.data.role;
+  const caller = session.user_id;
+
+  const callerRole = await getRoomRole(roomId, caller);
+  if (!callerRole || callerRole === "member") {
+    return Response.json({ error: "forbidden" }, { status: 403 });
+  }
+
+  const targetRole = await getRoomRole(roomId, targetUserId);
+  if (!targetRole) {
+    return Response.json({ error: "not a member" }, { status: 404 });
+  }
+
+  if (targetRole === "owner") {
+    return Response.json({ error: "cannot change owner" }, { status: 403 });
+  }
+
+  if (callerRole === "admin" && caller === targetUserId) {
+    return Response.json({ error: "forbidden" }, { status: 403 });
+  }
+
+  if (targetRole === newRole) {
+    return Response.json({ error: "no change" }, { status: 400 });
+  }
+
+  await sql`
+    UPDATE room_members SET role = ${newRole}
+    WHERE room_id = ${roomId} AND user_id = ${targetUserId}
+  `;
+
+  const memberRows = await sql<{ user_id: string }[]>`
+    SELECT user_id FROM room_members WHERE room_id = ${roomId}
+  `;
+  const memberIds = memberRows.map((m) => m.user_id);
+
+  broadcast(memberIds, {
+    type: "ROOM_MEMBER_ROLE_CHANGED",
+    payload: { roomId, userId: targetUserId, role: newRole },
+    timestamp: Date.now(),
+  });
 
   return Response.json({ ok: true });
 }

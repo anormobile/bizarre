@@ -35,11 +35,11 @@ export const createRoomInputSchema = z.object({
 
 export const sendMessageInputSchema = z
   .object({
-    roomId: z.number().int().positive().optional(),
-    dmId: z.number().int().positive().optional(),
+    roomId: z.coerce.number().int().positive().optional(),
+    dmId: z.coerce.number().int().positive().optional(),
     userId: z.string().uuid().optional(),
     content: z.string().min(1).max(3072),
-    replyToId: z.number().int().positive().optional(),
+    replyToId: z.coerce.number().int().positive().optional(),
   })
   .refine(
     (v) =>
@@ -99,6 +99,10 @@ export const roomMemberPathSchema = z.object({
 
 export const attachmentIdParamSchema = z.object({
   id: z.coerce.number().int().positive(),
+});
+
+export const roomMemberRoleSchema = z.object({
+  role: z.enum(['admin', 'member']),
 });
 
 export const uploadAttachmentFieldsSchema = z

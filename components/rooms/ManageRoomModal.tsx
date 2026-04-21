@@ -8,9 +8,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Avatar } from "@/components/Avatar";
-import type { RoomSummary, RoomMemberView } from "@/lib/types";
+import type { RoomSummary, RoomMemberView, RoomBanView } from "@/lib/types";
 
-type Tab = "members" | "invite" | "settings";
+type Tab = "members" | "admins" | "banned" | "invite" | "settings";
 
 interface ManageRoomModalProps {
   open: boolean;
@@ -20,6 +20,7 @@ interface ManageRoomModalProps {
   currentUserId: string;
   onRoomUpdated?: (room: Partial<RoomSummary>) => void;
   onRoomDeleted?: () => void;
+  onMembersRefresh?: () => void;
 }
 
 export function ManageRoomModal({
@@ -30,10 +31,15 @@ export function ManageRoomModal({
   currentUserId,
   onRoomUpdated,
   onRoomDeleted,
+  onMembersRefresh,
 }: ManageRoomModalProps) {
   const [tab, setTab] = useState<Tab>("members");
   const viewerRole = members.find((m) => m.userId === currentUserId)?.role ?? null;
   const isOwnerOrAdmin = viewerRole === "owner" || viewerRole === "admin";
+
+  const visibleTabs: Tab[] = isOwnerOrAdmin
+    ? ["members", "admins", "banned", "invite", "settings"]
+    : ["members", "invite", "settings"];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -42,11 +48,11 @@ export function ManageRoomModal({
           <DialogTitle>Manage #{room.name}</DialogTitle>
         </DialogHeader>
         <div className="flex overflow-hidden rounded-lg border border-border">
-          {(["members", "invite", "settings"] as Tab[]).map((t) => (
+          {visibleTabs.map((t, i) => (
             <button
               key={t}
               className={`flex-1 py-2.5 text-[13px] font-medium capitalize transition-colors ${
-                t !== "members" ? "border-l border-border" : ""
+                i !== 0 ? "border-l border-border" : ""
               } ${tab === t ? "bg-primary-light text-primary" : "text-text-2 hover:bg-bg"}`}
               onClick={() => setTab(t)}
             >
@@ -57,6 +63,12 @@ export function ManageRoomModal({
 
         {tab === "members" && (
           <MembersTab members={members} currentUserId={currentUserId} roomId={room.id} viewerRole={viewerRole} />
+        )}
+        {tab === "admins" && isOwnerOrAdmin && (
+          <AdminsTab members={members} currentUserId={currentUserId} roomId={room.id} viewerRole={viewerRole} onMembersRefresh={onMembersRefresh} />
+        )}
+        {tab === "banned" && isOwnerOrAdmin && (
+          <BannedTab roomId={room.id} />
         )}
         {tab === "invite" && (
           <InviteTab roomId={room.id} />
@@ -103,6 +115,7 @@ function MembersTab({
   const roleBadge = (role: string) => {
     if (role === "owner") return <span className="rounded bg-primary-light px-[5px] py-px text-[9px] font-bold text-primary">OWNER</span>;
     if (role === "admin") return <span className="rounded bg-[#FCE4EC] px-[5px] py-px text-[9px] font-bold text-[#EC407A]">ADMIN</span>;
+    if (role === "pending") return <span className="rounded bg-border px-[5px] py-px text-[9px] font-bold text-text-3">PENDING</span>;
     return null;
   };
 
@@ -113,7 +126,7 @@ function MembersTab({
           <Avatar username={m.username} size={28} />
           <span className="flex-1 truncate text-sm font-medium text-text">{m.username}</span>
           {roleBadge(m.role)}
-          {canBan(m) && (
+          {m.role !== "pending" && canBan(m) && (
             <button
               onClick={() => handleBan(m.userId)}
               disabled={banningId === m.userId}
@@ -122,6 +135,182 @@ function MembersTab({
               {banningId === m.userId ? "\u2026" : "Ban"}
             </button>
           )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AdminsTab({
+  members,
+  currentUserId,
+  roomId,
+  viewerRole,
+  onMembersRefresh,
+}: {
+  members: RoomMemberView[];
+  currentUserId: string;
+  roomId: number;
+  viewerRole: string | null;
+  onMembersRefresh?: () => void;
+}) {
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [errorId, setErrorId] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const admins = members.filter((m) => m.role === "owner" || m.role === "admin");
+  const plainMembers = members.filter((m) => m.role === "member");
+
+  const roleBadge = (role: string) => {
+    if (role === "owner") return <span className="rounded bg-primary-light px-[5px] py-px text-[9px] font-bold text-primary">OWNER</span>;
+    if (role === "admin") return <span className="rounded bg-[#FCE4EC] px-[5px] py-px text-[9px] font-bold text-[#EC407A]">ADMIN</span>;
+    return null;
+  };
+
+  async function handleRoleChange(userId: string, newRole: "admin" | "member") {
+    setLoadingId(userId);
+    setErrorId(null);
+    setErrorMsg("");
+    try {
+      const res = await fetch(`/api/rooms/${roomId}/members/${userId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: newRole }),
+      });
+      if (res.ok) {
+        onMembersRefresh?.();
+      } else {
+        const data = await res.json().catch(() => ({ error: "failed" }));
+        setErrorId(userId);
+        setErrorMsg(data.error ?? "failed");
+      }
+    } catch {
+      setErrorId(userId);
+      setErrorMsg("network error");
+    } finally {
+      setLoadingId(null);
+    }
+  }
+
+  return (
+    <div className="flex max-h-72 flex-col gap-3 overflow-y-auto">
+      <div>
+        <p className="mb-1.5 text-xs font-semibold text-text-2">Admins</p>
+        <div className="flex flex-col gap-1">
+          {admins.map((m) => (
+            <div key={m.userId} className="group flex items-center gap-2.5 rounded-lg px-2 py-1.5">
+              <Avatar username={m.username} size={28} />
+              <span className="flex-1 truncate text-sm font-medium text-text">{m.username}</span>
+              {roleBadge(m.role)}
+              {viewerRole === "owner" && m.role === "admin" && (
+                <button
+                  onClick={() => handleRoleChange(m.userId, "member")}
+                  disabled={loadingId === m.userId}
+                  className="hidden rounded bg-[#FEF2F2] px-2 py-0.5 text-[10px] font-medium text-unread group-hover:inline-flex disabled:opacity-50"
+                >
+                  {loadingId === m.userId ? "\u2026" : "Remove admin"}
+                </button>
+              )}
+              {errorId === m.userId && <span className="text-[10px] text-unread">{errorMsg}</span>}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {((viewerRole === "owner") || (viewerRole === "admin")) && plainMembers.length > 0 && (
+        <div>
+          <p className="mb-1.5 text-xs font-semibold text-text-2">Promote member</p>
+          <div className="flex flex-col gap-1">
+            {plainMembers.map((m) => (
+              <div key={m.userId} className="group flex items-center gap-2.5 rounded-lg px-2 py-1.5">
+                <Avatar username={m.username} size={28} />
+                <span className="flex-1 truncate text-sm font-medium text-text">{m.username}</span>
+                <button
+                  onClick={() => handleRoleChange(m.userId, "admin")}
+                  disabled={loadingId === m.userId}
+                  className="hidden rounded bg-primary-light px-2 py-0.5 text-[10px] font-medium text-primary group-hover:inline-flex disabled:opacity-50"
+                >
+                  {loadingId === m.userId ? "\u2026" : "Make admin"}
+                </button>
+                {errorId === m.userId && <span className="text-[10px] text-unread">{errorMsg}</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BannedTab({ roomId }: { roomId: number }) {
+  const [bans, setBans] = useState<RoomBanView[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [unbanningId, setUnbanningId] = useState<string | null>(null);
+  const [errorId, setErrorId] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    fetch(`/api/rooms/${roomId}/bans`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled) return;
+        if (data?.bans) setBans(data.bans);
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [roomId]);
+
+  async function handleUnban(userId: string) {
+    setUnbanningId(userId);
+    setErrorId(null);
+    setErrorMsg("");
+    try {
+      const res = await fetch(`/api/rooms/${roomId}/bans/${userId}`, { method: "DELETE" });
+      if (res.ok || res.status === 204) {
+        setBans((prev) => prev.filter((b) => b.userId !== userId));
+      } else {
+        const data = await res.json().catch(() => ({ error: "failed" }));
+        setErrorId(userId);
+        setErrorMsg(data.error ?? "failed");
+      }
+    } catch {
+      setErrorId(userId);
+      setErrorMsg("network error");
+    } finally {
+      setUnbanningId(null);
+    }
+  }
+
+  if (loading) {
+    return <p className="py-6 text-center text-sm text-text-3">Loading…</p>;
+  }
+
+  if (bans.length === 0) {
+    return <p className="py-6 text-center text-sm text-text-3">No banned users.</p>;
+  }
+
+  return (
+    <div className="flex max-h-72 flex-col gap-1 overflow-y-auto">
+      {bans.map((b) => (
+        <div key={b.userId} className="group flex items-center gap-2.5 rounded-lg px-2 py-1.5">
+          <Avatar username={b.username} size={28} />
+          <div className="flex flex-1 flex-col truncate">
+            <span className="text-sm font-medium text-text">{b.username}</span>
+            <span className="text-[10px] text-text-3">
+              {b.bannedByUsername ? `Banned by ${b.bannedByUsername}` : "Banned"} · {new Date(b.bannedAt).toLocaleString()}
+            </span>
+          </div>
+          <button
+            onClick={() => handleUnban(b.userId)}
+            disabled={unbanningId === b.userId}
+            className="hidden rounded bg-primary-light px-2 py-0.5 text-[10px] font-medium text-primary group-hover:inline-flex disabled:opacity-50"
+          >
+            {unbanningId === b.userId ? "\u2026" : "Unban"}
+          </button>
+          {errorId === b.userId && <span className="text-[10px] text-unread">{errorMsg}</span>}
         </div>
       ))}
     </div>
