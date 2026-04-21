@@ -39,9 +39,28 @@ export async function GET(
   const otherUserId = paramParsed.data.userId;
   const me = session.user_id;
 
-  if (!(await isConfirmedFriend(me, otherUserId))) {
+  const [a, b] = [me, otherUserId].sort();
+  const dmRows = await sql<{ id: number }[]>`
+    SELECT id FROM dms WHERE user_a = ${a} AND user_b = ${b}
+  `;
+  const isFriend = await isConfirmedFriend(me, otherUserId);
+
+  if (!isFriend && dmRows.length === 0) {
     return Response.json({ error: "not friends" }, { status: 403 });
   }
+
+  if (dmRows.length === 0) {
+    return Response.json({ messages: [], nextCursor: null, frozen: false });
+  }
+  const dmId = dmRows[0]!.id;
+
+  const banRows = await sql<{ blocker_id: string }[]>`
+    SELECT blocker_id FROM user_bans
+    WHERE (blocker_id = ${me} AND blocked_id = ${otherUserId})
+       OR (blocker_id = ${otherUserId} AND blocked_id = ${me})
+    LIMIT 1
+  `;
+  const frozen = banRows.length > 0;
 
   const url = new URL(request.url);
   const queryParsed = listDmMessagesQuerySchema.safeParse(
@@ -52,15 +71,6 @@ export async function GET(
   }
 
   const { before, limit } = queryParsed.data;
-
-  const [a, b] = [me, otherUserId].sort();
-  const dmRows = await sql<{ id: number }[]>`
-    SELECT id FROM dms WHERE user_a = ${a} AND user_b = ${b}
-  `;
-  if (dmRows.length === 0) {
-    return Response.json({ messages: [], nextCursor: null });
-  }
-  const dmId = dmRows[0]!.id;
 
   let msgRows: { id: number; dm_id: number | null; room_id: number | null; user_id: string; username: string; content: string; reply_to_id: number | null; created_at: Date; edited_at: Date | null; deleted_at: Date | null }[];
 
@@ -135,5 +145,5 @@ export async function GET(
 
   const nextCursor = messages.length === limit ? messages[messages.length - 1]!.id : null;
 
-  return Response.json({ messages, nextCursor });
+  return Response.json({ messages, nextCursor, frozen });
 }

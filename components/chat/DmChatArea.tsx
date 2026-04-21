@@ -19,6 +19,7 @@ export function DmChatArea({ friendUserId, friendUsername, currentUserId, eventB
   const [loading, setLoading] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
   const [notFriends, setNotFriends] = useState(false);
+  const [frozen, setFrozen] = useState(false);
   const [dmId, setDmId] = useState<number | null>(null);
   const [replyingTo, setReplyingTo] = useState<{ id: number; content: string; username: string } | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -30,7 +31,7 @@ export function DmChatArea({ friendUserId, friendUsername, currentUserId, eventB
     const res = await fetch(`/api/dms/${userId}/messages?${params}`);
     if (res.status === 403) return "not_friends" as const;
     if (!res.ok) return null;
-    return res.json() as Promise<{ messages: MessageView[]; nextCursor: number | null }>;
+    return res.json() as Promise<{ messages: MessageView[]; nextCursor: number | null; frozen?: boolean }>;
   }, []);
 
   useEffect(() => {
@@ -40,6 +41,7 @@ export function DmChatArea({ friendUserId, friendUsername, currentUserId, eventB
     setInitialLoad(true);
     setLoading(true);
     setNotFriends(false);
+    setFrozen(false);
     setDmId(null);
 
     fetchMessages(friendUserId).then((data) => {
@@ -58,6 +60,7 @@ export function DmChatArea({ friendUserId, friendUsername, currentUserId, eventB
       const reversed = data.messages.reverse();
       setMessages(reversed);
       setNextCursor(data.nextCursor);
+      if (data.frozen) setFrozen(true);
       if (reversed.length > 0 && reversed[0]!.dmId !== null) {
         setDmId(reversed[0]!.dmId);
       }
@@ -204,17 +207,23 @@ export function DmChatArea({ friendUserId, friendUsername, currentUserId, eventB
           currentUserId={currentUserId}
           onEdit={handleEdit}
           onDelete={handleDelete}
-          onReply={(msg) => setReplyingTo({ id: msg.id, content: msg.content, username: msg.username })}
+          onReply={frozen ? undefined : (msg) => setReplyingTo({ id: msg.id, content: msg.content, username: msg.username })}
           onScroll={handleScroll}
         />
       )}
-      <MessageInput
-        dmId={dmId ?? undefined}
-        dmUserId={dmId === null ? friendUserId : undefined}
-        onSent={handleSent}
-        replyingTo={replyingTo}
-        onClearReply={() => setReplyingTo(null)}
-      />
+      {frozen ? (
+        <div className="border-t px-4 py-3 text-center">
+          <p className="text-sm text-muted-foreground">This conversation has been frozen.</p>
+        </div>
+      ) : (
+        <MessageInput
+          dmId={dmId ?? undefined}
+          dmUserId={dmId === null ? friendUserId : undefined}
+          onSent={handleSent}
+          replyingTo={replyingTo}
+          onClearReply={() => setReplyingTo(null)}
+        />
+      )}
     </div>
   );
 }
