@@ -97,7 +97,28 @@ export async function DELETE(
     SELECT user_id FROM room_members WHERE room_id = ${roomId}
   `;
 
-  await sql`UPDATE rooms SET deleted_at = NOW() WHERE id = ${roomId}`;
+  await sql.begin(async (tx) => {
+    const paths = await tx<{ storage_path: string }[]>`
+      SELECT storage_path FROM attachments
+      WHERE message_id IN (SELECT id FROM messages WHERE room_id = ${roomId})
+    `;
+
+    for (const { storage_path } of paths) {
+      try {
+        const fs = await import("node:fs/promises");
+        await fs.unlink(storage_path);
+      } catch (e: unknown) {
+        if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e;
+      }
+    }
+
+    await tx`
+      DELETE FROM attachments
+      WHERE message_id IN (SELECT id FROM messages WHERE room_id = ${roomId})
+    `;
+    await tx`DELETE FROM messages WHERE room_id = ${roomId}`;
+    await tx`UPDATE rooms SET deleted_at = NOW() WHERE id = ${roomId}`;
+  });
 
   broadcast(
     memberIds.map((m) => m.user_id),
