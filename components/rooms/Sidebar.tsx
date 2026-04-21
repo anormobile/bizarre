@@ -98,13 +98,13 @@ export function Sidebar({
       </div>
 
       <div className="flex-1 overflow-y-auto px-1.5 py-1">
-        <SidebarSection label="Rooms" open={sections.rooms} onToggle={() => toggleSection('rooms')} badge={publicRooms.length}>
+        <SidebarSection label="Rooms" open={sections.rooms} onToggle={() => toggleSection('rooms')}>
           {publicRooms.map((r) => (
             <RoomItem key={r.id} room={r} selected={selectedRoomId === r.id} onSelect={(room) => onSelect(room.id)} />
           ))}
         </SidebarSection>
 
-        <SidebarSection label="Private" open={sections.private} onToggle={() => toggleSection('private')} badge={privateRooms.length}>
+        <SidebarSection label="Private" open={sections.private} onToggle={() => toggleSection('private')}>
           {privateRooms.map((r) => (
             <RoomItem key={r.id} room={r} selected={selectedRoomId === r.id} onSelect={(room) => onSelect(room.id)} />
           ))}
