@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { RoomItem } from "@/components/rooms/RoomItem";
 import { CreateRoomModal } from "@/components/rooms/CreateRoomModal";
-import { PublicRoomsModal } from "@/components/rooms/PublicRoomsModal";
 import { ContactsList } from "@/components/friends/ContactsList";
 import type { RoomSummary, FriendView } from "@/lib/types";
 
@@ -77,14 +76,6 @@ export function Sidebar({
     );
   }
 
-  function handleJoined(room: RoomSummary) {
-    onMineChange(
-      mine.some((r) => r.id === room.id)
-        ? mine
-        : [{ ...room, memberCount: room.memberCount + 1 }, ...mine],
-    );
-  }
-
   function handleRemoveFriend(userId: string) {
     onFriendsChange(friends.filter((f) => f.userId !== userId));
   }
@@ -126,7 +117,6 @@ export function Sidebar({
 
       <div className="flex flex-col gap-1.5 border-t border-border p-2.5">
         <CreateRoomModal onCreated={handleCreated} />
-        <PublicRoomsModal onJoined={handleJoined} trigger />
       </div>
     </aside>
   );
