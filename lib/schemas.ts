@@ -83,6 +83,10 @@ export const changePasswordInputSchema = z.object({
   newPassword: z.string().min(8),
 });
 
+export const inviteToRoomInputSchema = z.object({
+  username: z.string().trim().min(1).max(48),
+});
+
 export const presenceStatusSchema = z.enum(['online', 'afk', 'offline']);
 
 export const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;

@@ -76,6 +76,16 @@ export interface PresenceChangedMessage extends WsMessageBase<
   { userId: string; status: PresenceStatus }
 > {}
 
+export type RoomInvitationReceivedMessage = WsMessageBase<
+  "ROOM_INVITATION_RECEIVED",
+  {
+    invitationId: number;
+    roomId: number;
+    roomName: string;
+    invitedBy: { userId: string; username: string };
+  }
+>;
+
 export type WsMessage =
   | BroadcastTestMessage
   | MemberJoinedMessage
@@ -89,7 +99,8 @@ export type WsMessage =
   | FriendRequestAcceptedMessage
   | FriendRequestDeclinedMessage
   | PresenceChangedMessage
-  | UserBanNotifyMessage;
+  | UserBanNotifyMessage
+  | RoomInvitationReceivedMessage;
 
 export interface SessionRow {
   id: string;

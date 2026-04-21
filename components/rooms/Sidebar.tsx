@@ -5,6 +5,7 @@ import { CreateRoomModal } from "@/components/rooms/CreateRoomModal";
 import { PublicRoomsModal } from "@/components/rooms/PublicRoomsModal";
 import { AddContactModal } from "@/components/friends/AddContactModal";
 import { FriendRequestsModal } from "@/components/friends/FriendRequestsModal";
+import { InvitationsModal } from "@/components/friends/InvitationsModal";
 import { ContactsList } from "@/components/friends/ContactsList";
 import type { RoomSummary, FriendView, FriendRequestView } from "@/lib/types";
 
@@ -90,6 +91,7 @@ export function Sidebar({
       <div className="flex flex-col gap-2">
         <CreateRoomModal onCreated={handleCreated} />
         <PublicRoomsModal onJoined={handleJoined} />
+        <InvitationsModal onJoined={handleJoined} />
       </div>
       <nav className="flex flex-col gap-0.5">
         {mine.length === 0 && (
