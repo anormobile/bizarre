@@ -285,6 +285,32 @@ export function Shell({ initialMine, currentUserId, currentUsername, afkIdleMs }
     return role;
   })();
 
+  type FriendStatus = 'self' | 'friends' | 'request_sent' | 'request_received' | 'blocked' | 'strangers';
+  const friendStatusByUserId = useMemo(() => {
+    const map = new Map<string, FriendStatus>();
+    map.set(currentUserId, 'self');
+    for (const f of friends) map.set(f.userId, 'friends');
+    for (const r of outgoing) map.set(r.userId, 'request_sent');
+    for (const r of incoming) map.set(r.userId, 'request_received');
+    return map;
+  }, [currentUserId, friends, outgoing, incoming]);
+
+  const refetchFriendData = useCallback(() => {
+    fetch("/api/friends")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => { if (data?.friends) setFriends(data.friends); })
+      .catch(() => {});
+    fetch("/api/friends/requests")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data) {
+          if (data.incoming) setIncoming(data.incoming);
+          if (data.outgoing) setOutgoing(data.outgoing);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   function handleViewChange(view: NavView) {
     if (view === 'public') {
       setPublicRoomsOpen(true);
@@ -326,19 +352,6 @@ export function Shell({ initialMine, currentUserId, currentUsername, afkIdleMs }
       <div className="flex flex-1 overflow-hidden">
         {activeView === 'chat' && (
           <>
-            <Sidebar
-              mine={mine}
-              selectedRoomId={selectedRoomId}
-              onSelect={handleSelectRoom}
-              onMineChange={setMine}
-              friends={friends}
-              onFriendsChange={setFriends}
-              selectedDmUserId={selectedDmUserId}
-              onSelectDm={handleSelectDm}
-              inviteCount={inviteCount}
-              onInviteCountReset={() => setInviteCount(0)}
-              onJoinedRoom={handleJoined}
-            />
             {selectedRoom ? (
               <>
                 <ChatArea
@@ -355,6 +368,8 @@ export function Shell({ initialMine, currentUserId, currentUsername, afkIdleMs }
                   currentUserId={currentUserId}
                   onManage={() => setManageRoomOpen(true)}
                   onInvite={() => { setManageRoomOpen(true); }}
+                  friendStatusByUserId={friendStatusByUserId}
+                  onFriendStatusChange={refetchFriendData}
                 />
               </>
             ) : selectedFriend ? (
@@ -377,6 +392,19 @@ export function Shell({ initialMine, currentUserId, currentUsername, afkIdleMs }
                 </div>
               </main>
             )}
+            <Sidebar
+              mine={mine}
+              selectedRoomId={selectedRoomId}
+              onSelect={handleSelectRoom}
+              onMineChange={setMine}
+              friends={friends}
+              onFriendsChange={setFriends}
+              selectedDmUserId={selectedDmUserId}
+              onSelectDm={handleSelectDm}
+              inviteCount={inviteCount}
+              onInviteCountReset={() => setInviteCount(0)}
+              onJoinedRoom={handleJoined}
+            />
           </>
         )}
 

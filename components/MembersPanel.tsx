@@ -14,6 +14,8 @@ import {
 import { Button } from "@/components/ui/button";
 import type { RoomMemberView, RoomSummary } from "@/lib/types";
 
+type FriendStatus = 'self' | 'friends' | 'request_sent' | 'request_received' | 'blocked' | 'strangers';
+
 interface MembersPanelProps {
   roomId: number;
   room: RoomSummary;
@@ -21,12 +23,16 @@ interface MembersPanelProps {
   currentUserId: string;
   onManage?: () => void;
   onInvite?: () => void;
+  friendStatusByUserId: Map<string, FriendStatus>;
+  onFriendStatusChange: () => void;
 }
 
-export function MembersPanel({ roomId, room, members, currentUserId, onManage, onInvite }: MembersPanelProps) {
+export function MembersPanel({ roomId, room, members, currentUserId, onManage, onInvite, friendStatusByUserId, onFriendStatusChange }: MembersPanelProps) {
   const [banTarget, setBanTarget] = useState<RoomMemberView | null>(null);
   const [banning, setBanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [addFriendLoading, setAddFriendLoading] = useState<string | null>(null);
+  const [addFriendError, setAddFriendError] = useState<Record<string, string>>({});
 
   const viewerRole = members.find((m) => m.userId === currentUserId)?.role ?? null;
 
@@ -65,7 +71,31 @@ export function MembersPanel({ roomId, room, members, currentUserId, onManage, o
     member: members.filter((m) => m.role === "member"),
   };
 
+  async function handleAddFriend(member: RoomMemberView) {
+    setAddFriendLoading(member.userId);
+    setAddFriendError((prev) => { const next = { ...prev }; delete next[member.userId]; return next; });
+    try {
+      const res = await fetch('/api/friends/requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: member.username }),
+      });
+      if (res.ok) {
+        onFriendStatusChange();
+      } else {
+        const body = await res.json().catch(() => ({ error: 'failed' }));
+        setAddFriendError((prev) => ({ ...prev, [member.userId]: body.error ?? 'failed' }));
+      }
+    } catch {
+      setAddFriendError((prev) => ({ ...prev, [member.userId]: 'network error' }));
+    } finally {
+      setAddFriendLoading(null);
+    }
+  }
+
   function MemberRow({ m }: { m: RoomMemberView }) {
+    const status = friendStatusByUserId.get(m.userId) ?? 'strangers';
+    const showAddFriend = status === 'strangers';
     return (
       <div className="group flex items-center gap-2 rounded-lg px-2 py-1">
         <div className="relative shrink-0">
@@ -86,6 +116,15 @@ export function MembersPanel({ roomId, room, members, currentUserId, onManage, o
         {m.role === "admin" && (
           <span className="rounded bg-[#FCE4EC] px-[5px] py-px text-[9px] font-bold text-[#EC407A]">ADMIN</span>
         )}
+        {showAddFriend && (
+          <button
+            onClick={() => handleAddFriend(m)}
+            disabled={addFriendLoading === m.userId}
+            className="hidden shrink-0 rounded bg-primary-light px-1.5 py-0.5 text-[10px] font-medium text-primary group-hover:inline-flex"
+          >
+            {addFriendLoading === m.userId ? 'Sending…' : 'Add friend'}
+          </button>
+        )}
         {canBan(m) && (
           <button
             onClick={() => { setError(null); setBanTarget(m); }}
@@ -93,6 +132,9 @@ export function MembersPanel({ roomId, room, members, currentUserId, onManage, o
           >
             Ban
           </button>
+        )}
+        {addFriendError[m.userId] && (
+          <span className="text-destructive text-xs">{addFriendError[m.userId]}</span>
         )}
       </div>
     );

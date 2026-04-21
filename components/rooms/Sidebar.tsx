@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { RoomItem } from "@/components/rooms/RoomItem";
 import { CreateRoomModal } from "@/components/rooms/CreateRoomModal";
 import { ContactsList } from "@/components/friends/ContactsList";
+import { InvitationsModal } from "@/components/friends/InvitationsModal";
 import type { RoomSummary, FriendView } from "@/lib/types";
+
+type SectionKey = 'rooms' | 'private' | 'contacts';
 
 interface SidebarProps {
   mine: RoomSummary[];
@@ -15,6 +18,9 @@ interface SidebarProps {
   onFriendsChange: (next: FriendView[]) => void;
   selectedDmUserId: string | null;
   onSelectDm: (userId: string) => void;
+  inviteCount: number;
+  onInviteCountReset: () => void;
+  onJoinedRoom: (room: RoomSummary) => void;
 }
 
 function SidebarSection({ label, open, onToggle, badge, children }: {
@@ -57,13 +63,36 @@ export function Sidebar({
   onFriendsChange,
   selectedDmUserId,
   onSelectDm,
+  inviteCount,
+  onInviteCountReset,
+  onJoinedRoom,
 }: SidebarProps) {
   const [search, setSearch] = useState("");
-  const [sections, setSections] = useState({ rooms: true, private: true, contacts: true });
+  const [sections, setSections] = useState<Record<SectionKey, boolean>>({ rooms: true, private: true, contacts: true });
+  const [manuallyExpanded, setManuallyExpanded] = useState<Record<SectionKey, boolean>>({ rooms: false, private: false, contacts: false });
 
-  function toggleSection(key: keyof typeof sections) {
-    setSections((prev) => ({ ...prev, [key]: !prev[key] }));
+  function toggleSection(key: SectionKey) {
+    setSections((prev) => {
+      const next = !prev[key];
+      setManuallyExpanded((me) => ({ ...me, [key]: next }));
+      return { ...prev, [key]: next };
+    });
   }
+
+  const prevHadSelection = useRef(false);
+  useEffect(() => {
+    const hasSelection = selectedRoomId != null || selectedDmUserId != null;
+    if (hasSelection && !prevHadSelection.current) {
+      setSections((prev) => {
+        const next = { ...prev };
+        for (const k of ['rooms', 'private', 'contacts'] as const) {
+          if (!manuallyExpanded[k]) next[k] = false;
+        }
+        return next;
+      });
+    }
+    prevHadSelection.current = hasSelection;
+  }, [selectedRoomId, selectedDmUserId, manuallyExpanded]);
 
   const q = search.toLowerCase();
   const publicRooms = mine.filter((r) => r.visibility === "public" && (!q || r.name.toLowerCase().includes(q)));
@@ -81,7 +110,7 @@ export function Sidebar({
   }
 
   return (
-    <aside className="flex w-[230px] shrink-0 flex-col border-r border-border bg-surface">
+    <aside className="flex w-[230px] shrink-0 flex-col border-l border-border bg-surface">
       <div className="px-2.5 pb-1.5 pt-2.5">
         <div className="relative">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2">
@@ -116,6 +145,11 @@ export function Sidebar({
       </div>
 
       <div className="flex flex-col gap-1.5 border-t border-border p-2.5">
+        <InvitationsModal
+          inviteCount={inviteCount}
+          onCountReset={onInviteCountReset}
+          onJoined={onJoinedRoom}
+        />
         <CreateRoomModal onCreated={handleCreated} />
       </div>
     </aside>

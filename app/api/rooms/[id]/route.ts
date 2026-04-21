@@ -1,7 +1,11 @@
+import { unlink } from "node:fs/promises";
+import path from "path";
 import sql from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { broadcast } from "@/lib/websocket";
 import type { SessionRow, RoomRow, RoomMemberRow, RoomSummary } from "@/lib/types";
+
+const FILES_ROOT = process.env.FILES_ROOT ?? "/app/files";
 
 async function authenticate(): Promise<SessionRow | null> {
   return getSession(async (tokenHash) => {
@@ -97,20 +101,16 @@ export async function DELETE(
     SELECT user_id FROM room_members WHERE room_id = ${roomId}
   `;
 
-  await sql.begin(async (tx) => {
-    const paths = await tx<{ storage_path: string }[]>`
-      SELECT storage_path FROM attachments
-      WHERE message_id IN (SELECT id FROM messages WHERE room_id = ${roomId})
-    `;
+  let filePaths: string[] = [];
 
-    for (const { storage_path } of paths) {
-      try {
-        const fs = await import("node:fs/promises");
-        await fs.unlink(storage_path);
-      } catch (e: unknown) {
-        if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e;
-      }
-    }
+  await sql.begin(async (tx) => {
+    const rows = await tx<{ storage_path: string }[]>`
+      SELECT a.storage_path
+      FROM attachments a
+      JOIN messages m ON m.id = a.message_id
+      WHERE m.room_id = ${roomId}
+    `;
+    filePaths = rows.map((r) => r.storage_path);
 
     await tx`
       DELETE FROM attachments
@@ -119,6 +119,16 @@ export async function DELETE(
     await tx`DELETE FROM messages WHERE room_id = ${roomId}`;
     await tx`UPDATE rooms SET deleted_at = NOW() WHERE id = ${roomId}`;
   });
+
+  for (const p of filePaths) {
+    try {
+      await unlink(path.join(FILES_ROOT, p));
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+        console.warn('[room-delete] failed to unlink', p, err);
+      }
+    }
+  }
 
   broadcast(
     memberIds.map((m) => m.user_id),
