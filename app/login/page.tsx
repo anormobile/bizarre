@@ -54,7 +54,7 @@ export default function LoginPage() {
           <p className="mb-[22px] text-sm text-text-2">Welcome back!</p>
 
           <form onSubmit={handleSubmit} className="flex flex-col">
-            <label className="mb-[5px] text-xs font-semibold tracking-wide text-text-2">Email or username</label>
+            <label className="mb-[5px] text-xs font-semibold tracking-wide text-text-2">Email</label>
             <input
               name="emailOrUsername"
               placeholder="you@example.com"
