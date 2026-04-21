@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useIdleTracker } from "@/hooks/useIdleTracker";
+import { TopNav, type NavView } from "@/components/TopNav";
 import { Sidebar } from "@/components/rooms/Sidebar";
 import { ChatArea } from "@/components/chat/ChatArea";
 import { DmChatArea } from "@/components/chat/DmChatArea";
@@ -10,6 +11,10 @@ import type { EventBus } from "@/components/chat/ChatArea";
 import { setPresenceBulk } from "@/hooks/usePresence";
 import { increment, clear } from "@/lib/unread";
 import { MembersPanel } from "@/components/MembersPanel";
+import { ContactsView } from "@/components/views/ContactsView";
+import { SessionsView } from "@/components/views/SessionsView";
+import { PublicRoomsModal } from "@/components/rooms/PublicRoomsModal";
+import { ChangePasswordModal } from "@/components/auth/ChangePasswordModal";
 import type { RoomSummary, WsMessage, FriendView, FriendRequestView, RoomMemberView, PresenceStatus } from "@/lib/types";
 
 interface ShellProps {
@@ -23,6 +28,9 @@ export function Shell({ initialMine, currentUserId, currentUsername, afkIdleMs }
   const [mine, setMine] = useState<RoomSummary[]>(initialMine);
   const [selectedRoomId, setSelectedRoomId] = useState<number | null>(null);
   const [selectedDmUserId, setSelectedDmUserId] = useState<string | null>(null);
+  const [activeView, setActiveView] = useState<NavView>('chat');
+  const [publicRoomsOpen, setPublicRoomsOpen] = useState(false);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
   const [roomMembers, setRoomMembers] = useState<RoomMemberView[]>([]);
 
@@ -247,52 +255,120 @@ export function Shell({ initialMine, currentUserId, currentUsername, afkIdleMs }
   const selectedFriend = friends.find((f) => f.userId === selectedDmUserId) ?? null;
   const viewerRoomRole = roomMembers.find((m) => m.userId === currentUserId)?.role ?? null;
 
+  function handleViewChange(view: NavView) {
+    if (view === 'public') {
+      setPublicRoomsOpen(true);
+      return;
+    }
+    setActiveView(view);
+  }
+
+  async function handleSignOut() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    window.location.href = "/login";
+  }
+
+  function handleJoined(room: RoomSummary) {
+    setMine((prev) =>
+      prev.some((r) => r.id === room.id)
+        ? prev
+        : [{ ...room, memberCount: room.memberCount + 1 }, ...prev],
+    );
+  }
+
+  function handleContactMessage(userId: string) {
+    setSelectedDmUserId(userId);
+    setSelectedRoomId(null);
+    setActiveView('chat');
+    clear(`dm:${userId}`);
+  }
+
   return (
-    <div className="flex flex-1 overflow-hidden">
-      <Sidebar
-        mine={mine}
-        selectedRoomId={selectedRoomId}
-        onSelect={handleSelectRoom}
-        currentUserId={currentUserId}
-        onMineChange={setMine}
-        friends={friends}
-        incoming={incoming}
-        outgoing={outgoing}
-        onFriendsChange={setFriends}
-        onIncomingChange={setIncoming}
-        onOutgoingChange={setOutgoing}
-        selectedDmUserId={selectedDmUserId}
-        onSelectDm={handleSelectDm}
+    <div className="flex h-screen flex-col bg-bg">
+      <TopNav
+        activeView={activeView}
+        onViewChange={handleViewChange}
+        username={currentUsername}
+        onSignOut={handleSignOut}
+        onChangePassword={() => setChangePasswordOpen(true)}
       />
-      {selectedRoom ? (
-        <>
-          <ChatArea
-            room={selectedRoom}
-            currentUserId={currentUserId}
-            currentUsername={currentUsername}
-            eventBus={eventBus}
-            viewerRoomRole={viewerRoomRole}
+      <div className="flex flex-1 overflow-hidden">
+        {activeView === 'chat' && (
+          <>
+            <Sidebar
+              mine={mine}
+              selectedRoomId={selectedRoomId}
+              onSelect={handleSelectRoom}
+              onMineChange={setMine}
+              friends={friends}
+              onFriendsChange={setFriends}
+              selectedDmUserId={selectedDmUserId}
+              onSelectDm={handleSelectDm}
+            />
+            {selectedRoom ? (
+              <>
+                <ChatArea
+                  room={selectedRoom}
+                  currentUserId={currentUserId}
+                  currentUsername={currentUsername}
+                  eventBus={eventBus}
+                  viewerRoomRole={viewerRoomRole}
+                />
+                <MembersPanel
+                  roomId={selectedRoom.id}
+                  members={roomMembers}
+                  currentUserId={currentUserId}
+                />
+              </>
+            ) : selectedFriend ? (
+              <DmChatArea
+                friendUserId={selectedFriend.userId}
+                friendUsername={selectedFriend.username}
+                currentUserId={currentUserId}
+                eventBus={eventBus}
+              />
+            ) : (
+              <main className="flex flex-1 flex-col items-center justify-center gap-3.5 text-text-3">
+                <div className="flex h-[60px] w-[60px] items-center justify-center rounded-[18px] bg-border">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                    <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                <div className="text-center">
+                  <p className="mb-1 text-[15px] font-semibold text-text-2">No conversation selected</p>
+                  <p className="text-[13px]">Pick a room or contact from the sidebar</p>
+                </div>
+              </main>
+            )}
+          </>
+        )}
+
+        {activeView === 'contacts' && (
+          <ContactsView
+            friends={friends}
+            onSelectContact={handleContactMessage}
+            onFriendsChange={setFriends}
+            onIncomingChange={setIncoming}
+            onOutgoingChange={setOutgoing}
+            incoming={incoming}
+            outgoing={outgoing}
           />
-          <MembersPanel
-            roomId={selectedRoom.id}
-            members={roomMembers}
-            currentUserId={currentUserId}
-          />
-        </>
-      ) : selectedFriend ? (
-        <DmChatArea
-          friendUserId={selectedFriend.userId}
-          friendUsername={selectedFriend.username}
-          currentUserId={currentUserId}
-          eventBus={eventBus}
-        />
-      ) : (
-        <main className="flex flex-1 items-center justify-center p-6">
-          <div className="text-center text-muted-foreground">
-            <p className="text-lg font-medium">Select a room or contact to view messages.</p>
-          </div>
-        </main>
-      )}
+        )}
+
+        {activeView === 'sessions' && (
+          <SessionsView />
+        )}
+      </div>
+
+      <PublicRoomsModal
+        open={publicRoomsOpen}
+        onOpenChange={setPublicRoomsOpen}
+        onJoined={handleJoined}
+      />
+      <ChangePasswordModal
+        open={changePasswordOpen}
+        onOpenChange={setChangePasswordOpen}
+      />
     </div>
   );
 }

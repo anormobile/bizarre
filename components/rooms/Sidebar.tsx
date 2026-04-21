@@ -1,28 +1,52 @@
 "use client";
 
+import { useState } from "react";
 import { RoomItem } from "@/components/rooms/RoomItem";
 import { CreateRoomModal } from "@/components/rooms/CreateRoomModal";
 import { PublicRoomsModal } from "@/components/rooms/PublicRoomsModal";
-import { AddContactModal } from "@/components/friends/AddContactModal";
-import { FriendRequestsModal } from "@/components/friends/FriendRequestsModal";
-import { InvitationsModal } from "@/components/friends/InvitationsModal";
 import { ContactsList } from "@/components/friends/ContactsList";
-import type { RoomSummary, FriendView, FriendRequestView } from "@/lib/types";
+import type { RoomSummary, FriendView } from "@/lib/types";
 
 interface SidebarProps {
   mine: RoomSummary[];
   selectedRoomId: number | null;
   onSelect: (roomId: number) => void;
-  currentUserId: string;
   onMineChange: (next: RoomSummary[]) => void;
   friends: FriendView[];
-  incoming: FriendRequestView[];
-  outgoing: FriendRequestView[];
   onFriendsChange: (next: FriendView[]) => void;
-  onIncomingChange: (next: FriendRequestView[]) => void;
-  onOutgoingChange: (next: FriendRequestView[]) => void;
   selectedDmUserId: string | null;
   onSelectDm: (userId: string) => void;
+}
+
+function SidebarSection({ label, open, onToggle, badge, children }: {
+  label: string;
+  open: boolean;
+  onToggle: () => void;
+  badge?: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="mb-1">
+      <button
+        onClick={onToggle}
+        className="flex w-full items-center gap-1.5 px-2.5 py-1.5"
+      >
+        <svg
+          width="12" height="12" viewBox="0 0 24 24" fill="none"
+          className={`shrink-0 transition-transform ${open ? '' : '-rotate-90'}`}
+        >
+          <path d="M6 9L12 15L18 9" stroke="var(--color-text-3)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        <span className="flex-1 text-left text-[11px] font-bold uppercase tracking-[0.06em] text-text-3">
+          {label}
+        </span>
+        {badge != null && badge > 0 && (
+          <span className="text-[10px] font-bold text-text-3">{badge}</span>
+        )}
+      </button>
+      {open && <div>{children}</div>}
+    </div>
+  );
 }
 
 export function Sidebar({
@@ -31,14 +55,22 @@ export function Sidebar({
   onSelect,
   onMineChange,
   friends,
-  incoming,
-  outgoing,
   onFriendsChange,
-  onIncomingChange,
-  onOutgoingChange,
   selectedDmUserId,
   onSelectDm,
 }: SidebarProps) {
+  const [search, setSearch] = useState("");
+  const [sections, setSections] = useState({ rooms: true, private: true, contacts: true });
+
+  function toggleSection(key: keyof typeof sections) {
+    setSections((prev) => ({ ...prev, [key]: !prev[key] }));
+  }
+
+  const q = search.toLowerCase();
+  const publicRooms = mine.filter((r) => r.visibility === "public" && (!q || r.name.toLowerCase().includes(q)));
+  const privateRooms = mine.filter((r) => r.visibility === "private" && (!q || r.name.toLowerCase().includes(q)));
+  const filteredFriends = friends.filter((f) => !q || f.username.toLowerCase().includes(q));
+
   function handleCreated(room: RoomSummary) {
     onMineChange(
       mine.some((r) => r.id === room.id) ? mine : [room, ...mine],
@@ -53,77 +85,48 @@ export function Sidebar({
     );
   }
 
-  function handleRequestSent(view: FriendRequestView) {
-    onOutgoingChange([view, ...outgoing]);
-  }
-
-  function handleAutoAccepted(friend: FriendView) {
-    onFriendsChange(
-      friends.some((f) => f.userId === friend.userId)
-        ? friends
-        : [...friends, friend].sort((a, b) => a.username.localeCompare(b.username)),
-    );
-  }
-
-  function handleAccepted(friend: FriendView) {
-    onIncomingChange(incoming.filter((r) => r.userId !== friend.userId));
-    onFriendsChange(
-      friends.some((f) => f.userId === friend.userId)
-        ? friends
-        : [...friends, friend].sort((a, b) => a.username.localeCompare(b.username)),
-    );
-  }
-
-  function handleDeclined(userId: string) {
-    onIncomingChange(incoming.filter((r) => r.userId !== userId));
-  }
-
-  function handleCancelledOutgoing(userId: string) {
-    onOutgoingChange(outgoing.filter((r) => r.userId !== userId));
-  }
-
   function handleRemoveFriend(userId: string) {
     onFriendsChange(friends.filter((f) => f.userId !== userId));
   }
 
   return (
-    <aside className="flex h-full w-64 shrink-0 flex-col gap-3 border-r p-3 overflow-y-auto">
-      <div className="flex flex-col gap-2">
-        <CreateRoomModal onCreated={handleCreated} />
-        <PublicRoomsModal onJoined={handleJoined} />
-        <InvitationsModal onJoined={handleJoined} />
-      </div>
-      <nav className="flex flex-col gap-0.5">
-        {mine.length === 0 && (
-          <p className="px-3 py-2 text-xs text-muted-foreground">
-            No rooms yet
-          </p>
-        )}
-        {mine.map((room) => (
-          <RoomItem
-            key={room.id}
-            room={room}
-            selected={selectedRoomId === room.id}
-            onSelect={(r) => onSelect(r.id)}
-          />
-        ))}
-      </nav>
-
-      <div className="border-t pt-3">
-        <h3 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Contacts
-        </h3>
-        <div className="mb-2 flex gap-1.5">
-          <AddContactModal onSent={handleRequestSent} onAutoAccepted={handleAutoAccepted} />
-          <FriendRequestsModal
-            incoming={incoming}
-            outgoing={outgoing}
-            onAccepted={handleAccepted}
-            onDeclined={handleDeclined}
-            onCancelledOutgoing={handleCancelledOutgoing}
+    <aside className="flex w-[230px] shrink-0 flex-col border-r border-border bg-surface">
+      <div className="px-2.5 pb-1.5 pt-2.5">
+        <div className="relative">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2">
+            <circle cx="11" cy="11" r="8" stroke="var(--color-text-3)" strokeWidth="2"/>
+            <path d="M21 21L16.65 16.65" stroke="var(--color-text-3)" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search…"
+            className="w-full rounded-lg border-[1.5px] border-border bg-bg py-1.5 pl-7 pr-2.5 text-[13px] text-text outline-none transition-colors focus:border-primary"
           />
         </div>
-        <ContactsList friends={friends} selectedUserId={selectedDmUserId} onSelect={onSelectDm} onRemove={handleRemoveFriend} />
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-1.5 py-1">
+        <SidebarSection label="Rooms" open={sections.rooms} onToggle={() => toggleSection('rooms')} badge={publicRooms.length}>
+          {publicRooms.map((r) => (
+            <RoomItem key={r.id} room={r} selected={selectedRoomId === r.id} onSelect={(room) => onSelect(room.id)} />
+          ))}
+        </SidebarSection>
+
+        <SidebarSection label="Private" open={sections.private} onToggle={() => toggleSection('private')} badge={privateRooms.length}>
+          {privateRooms.map((r) => (
+            <RoomItem key={r.id} room={r} selected={selectedRoomId === r.id} onSelect={(room) => onSelect(room.id)} />
+          ))}
+        </SidebarSection>
+
+        <SidebarSection label="Contacts" open={sections.contacts} onToggle={() => toggleSection('contacts')}>
+          <ContactsList friends={filteredFriends} selectedUserId={selectedDmUserId} onSelect={onSelectDm} onRemove={handleRemoveFriend} />
+        </SidebarSection>
+      </div>
+
+      <div className="flex flex-col gap-1.5 border-t border-border p-2.5">
+        <CreateRoomModal onCreated={handleCreated} />
+        <PublicRoomsModal onJoined={handleJoined} trigger />
       </div>
     </aside>
   );
