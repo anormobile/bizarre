@@ -19,6 +19,9 @@ const dbSql = postgres(DATABASE_URL);
 const connectionsByUser = new Map();
 globalThis.__bizarreWsConnections__ = connectionsByUser;
 
+/** @type {Map<string, string>} userId -> last known status */
+const userLastStatus = new Map();
+
 function parseCookies(header) {
   const map = {};
   if (!header) return map;
@@ -120,6 +123,7 @@ app.prepare().then(() => {
     connectionsByUser.get(userId).add(ws);
 
     if (isFirstConnect) {
+      userLastStatus.set(userId, "online");
       try {
         await dbSql`
           INSERT INTO user_presence (user_id, status, updated_at)
@@ -143,12 +147,47 @@ app.prepare().then(() => {
       }
     }
 
+    ws.on("message", async (raw) => {
+      try {
+        const data = JSON.parse(raw.toString());
+        if (data.type === "PRESENCE_HEARTBEAT") {
+          const newStatus = data.payload?.status;
+          if (newStatus !== "online" && newStatus !== "afk") return;
+          const prev = userLastStatus.get(userId) || "online";
+          if (prev === newStatus) return;
+          userLastStatus.set(userId, newStatus);
+          try {
+            await dbSql`
+              INSERT INTO user_presence (user_id, status, updated_at)
+              VALUES (${userId}, ${newStatus}, NOW())
+              ON CONFLICT (user_id) DO UPDATE SET status = ${newStatus}, updated_at = NOW()
+            `;
+          } catch (err) {
+            console.error("presence heartbeat db error:", err);
+          }
+          const presenceMsg = JSON.stringify({
+            type: "PRESENCE_CHANGED",
+            payload: { userId, status: newStatus },
+            timestamp: Date.now(),
+          });
+          for (const [, socks] of connectionsByUser) {
+            for (const s of socks) {
+              if (s.readyState === 1) {
+                try { s.send(presenceMsg); } catch { /* swallow */ }
+              }
+            }
+          }
+        }
+      } catch { /* ignore malformed messages */ }
+    });
+
     ws.on("close", async () => {
       const sockets = connectionsByUser.get(userId);
       if (sockets) {
         sockets.delete(ws);
         if (sockets.size === 0) {
           connectionsByUser.delete(userId);
+          userLastStatus.delete(userId);
           try {
             await dbSql`
               INSERT INTO user_presence (user_id, status, updated_at)

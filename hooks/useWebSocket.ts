@@ -6,10 +6,15 @@ import type { WsMessage } from "@/lib/types";
 
 const MAX_BACKOFF_MS = 10_000;
 
+export interface WsHandle {
+  status: "connecting" | "connected";
+  send: (data: string) => void;
+}
+
 export function useWebSocket(
   url: string,
   onMessage: (msg: WsMessage) => void,
-): "connecting" | "connected" {
+): WsHandle {
   const wsRef = useRef<WebSocket | null>(null);
   const backoffRef = useRef(1_000);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -56,5 +61,11 @@ export function useWebSocket(
     };
   }, [connect]);
 
-  return connected ? "connected" : "connecting";
+  const send = useCallback((data: string) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(data);
+    }
+  }, []);
+
+  return { status: connected ? "connected" : "connecting", send };
 }

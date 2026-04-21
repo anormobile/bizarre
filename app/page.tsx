@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import sql from "@/lib/db";
 import { getSession } from "@/lib/session";
+import { env } from "@/lib/env";
 import { LogoutButton } from "@/components/LogoutButton";
 import { ChangePasswordModal } from "@/components/auth/ChangePasswordModal";
 import { WsStatus } from "@/components/WsStatus";
@@ -52,7 +53,7 @@ export default async function Home() {
           <LogoutButton />
         </div>
       </header>
-      <Shell initialMine={mine} currentUserId={session.user_id} currentUsername={user.username} />
+      <Shell initialMine={mine} currentUserId={session.user_id} currentUsername={user.username} afkIdleMs={env.AFK_IDLE_MS} />
     </div>
   );
 }

@@ -17,7 +17,7 @@ export function WsStatus() {
   const host = typeof window !== "undefined" ? window.location.host : "localhost:3000";
   const url = `${proto}//${host}/ws`;
 
-  const status = useWebSocket(url, onMessage);
+  const { status } = useWebSocket(url, onMessage);
 
   return (
     <div className="flex flex-col items-center gap-2 text-sm">

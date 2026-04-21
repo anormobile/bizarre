@@ -7,6 +7,7 @@ services:
       - DATABASE_URL=postgres://postgres:password@db:5432/chat
       - SESSION_SECRET=local-dev-session-secret-at-least-32-chars
       - ENABLE_DEV_ROUTES=${ENABLE_DEV_ROUTES:-true}
+      - AFK_IDLE_MS=${AFK_IDLE_MS:-60000}
     volumes:
       - ./files:/app/files
     depends_on:

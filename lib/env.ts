@@ -14,6 +14,7 @@ const envSchema = z.object({
     .enum(["true", "false"])
     .optional()
     .transform((v) => v === "true"),
+  AFK_IDLE_MS: z.coerce.number().default(60_000),
 });
 
 type Env = z.infer<typeof envSchema>;

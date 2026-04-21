@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import { useWebSocket } from "@/hooks/useWebSocket";
+import { useIdleTracker } from "@/hooks/useIdleTracker";
 import { Sidebar } from "@/components/rooms/Sidebar";
 import { ChatArea } from "@/components/chat/ChatArea";
 import { DmChatArea } from "@/components/chat/DmChatArea";
@@ -15,9 +16,10 @@ interface ShellProps {
   initialMine: RoomSummary[];
   currentUserId: string;
   currentUsername: string;
+  afkIdleMs?: number;
 }
 
-export function Shell({ initialMine, currentUserId, currentUsername }: ShellProps) {
+export function Shell({ initialMine, currentUserId, currentUsername, afkIdleMs }: ShellProps) {
   const [mine, setMine] = useState<RoomSummary[]>(initialMine);
   const [selectedRoomId, setSelectedRoomId] = useState<number | null>(null);
   const [selectedDmUserId, setSelectedDmUserId] = useState<string | null>(null);
@@ -225,7 +227,9 @@ export function Shell({ initialMine, currentUserId, currentUsername }: ShellProp
       : "ws:";
   const host =
     typeof window !== "undefined" ? window.location.host : "localhost:3000";
-  useWebSocket(`${proto}//${host}/ws`, onMessage);
+  const { send: wsSend } = useWebSocket(`${proto}//${host}/ws`, onMessage);
+
+  useIdleTracker(wsSend, afkIdleMs);
 
   const handleSelectRoom = useCallback((roomId: number) => {
     setSelectedRoomId(roomId);
