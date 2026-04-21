@@ -21,6 +21,7 @@ export function PublicRoomsModal({ onJoined }: PublicRoomsModalProps) {
   const [loading, setLoading] = useState(false);
   const [joining, setJoining] = useState<number | null>(null);
   const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
 
   async function fetchCatalog() {
     setLoading(true);
@@ -57,12 +58,18 @@ export function PublicRoomsModal({ onJoined }: PublicRoomsModalProps) {
     }
   }
 
+  const trimmed = search.toLowerCase().trim();
+  const filtered = trimmed
+    ? catalog.filter((r) => r.name.toLowerCase().includes(trimmed))
+    : catalog;
+
   return (
     <Dialog
       open={open}
       onOpenChange={(val) => {
         setOpen(val);
         if (val) fetchCatalog();
+        else setSearch("");
       }}
     >
       <DialogTrigger render={<Button variant="outline" size="sm" className="w-full" />}>
@@ -72,13 +79,20 @@ export function PublicRoomsModal({ onJoined }: PublicRoomsModalProps) {
         <DialogHeader>
           <DialogTitle>Public rooms</DialogTitle>
         </DialogHeader>
+        <input
+          type="text"
+          placeholder="Search rooms…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="mb-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+        />
         {loading && <p className="text-sm text-muted-foreground">Loading…</p>}
         {error && <p className="text-xs text-destructive">{error}</p>}
-        {!loading && catalog.length === 0 && (
+        {!loading && filtered.length === 0 && (
           <p className="text-sm text-muted-foreground">No public rooms to join.</p>
         )}
         <div className="flex max-h-64 flex-col gap-1 overflow-y-auto">
-          {catalog.map((room) => (
+          {filtered.map((room) => (
             <div
               key={room.id}
               className="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-muted"
