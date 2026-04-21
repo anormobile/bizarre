@@ -2,14 +2,6 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 
 export default function LoginPage() {
   const [error, setError] = useState("");
@@ -46,41 +38,68 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-full flex-1 items-center justify-center px-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>Sign in</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <Input
+    <div className="flex min-h-screen items-center justify-center bg-bg p-6">
+      <div className="w-full max-w-[400px]">
+        <div className="mb-7 flex items-center justify-center gap-2.5">
+          <div className="flex h-[38px] w-[38px] items-center justify-center rounded-[11px] bg-primary shadow-[0_4px_14px_rgba(92,107,192,0.4)]">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2Z" fill="white"/>
+            </svg>
+          </div>
+          <span className="text-[22px] font-extrabold tracking-tight text-text">Bizarre</span>
+        </div>
+
+        <div className="rounded-[18px] bg-surface px-7 py-[30px] shadow-[0_4px_32px_rgba(0,0,0,0.07),0_1px_3px_rgba(0,0,0,0.05)]">
+          <h1 className="mb-1 text-[22px] font-extrabold tracking-tight">Sign in</h1>
+          <p className="mb-[22px] text-sm text-text-2">Welcome back!</p>
+
+          <form onSubmit={handleSubmit} className="flex flex-col">
+            <label className="mb-[5px] text-xs font-semibold tracking-wide text-text-2">Email or username</label>
+            <input
               name="emailOrUsername"
-              placeholder="Email or username"
+              placeholder="you@example.com"
               required
               autoFocus
+              className="mb-3.5 w-full rounded-[10px] border-[1.5px] border-border bg-surface px-[13px] py-2.5 text-sm text-text outline-none transition-colors focus:border-primary focus:shadow-[0_0_0_3px_rgba(92,107,192,0.12)]"
             />
-            <Input
+
+            <label className="mb-[5px] text-xs font-semibold tracking-wide text-text-2">Password</label>
+            <input
               name="password"
               type="password"
-              placeholder="Password"
+              placeholder="••••••••"
               required
+              className="mb-3.5 w-full rounded-[10px] border-[1.5px] border-border bg-surface px-[13px] py-2.5 text-sm text-text outline-none transition-colors focus:border-primary focus:shadow-[0_0_0_3px_rgba(92,107,192,0.12)]"
             />
-            {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button type="submit" disabled={loading}>
-              {loading ? "Signing in\u2026" : "Sign in"}
-            </Button>
-          </form>
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            No account?{" "}
-            <Link
-              href="/register"
-              className="text-foreground underline underline-offset-4"
+
+            <label className="mb-5 flex items-center gap-2 cursor-pointer">
+              <input
+                name="rememberMe"
+                type="checkbox"
+                className="h-[15px] w-[15px] rounded border-border accent-primary"
+              />
+              <span className="text-sm text-text-2">Keep me signed in</span>
+            </label>
+
+            {error && <p className="mb-3 text-sm text-unread">{error}</p>}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-[10px] bg-primary px-[22px] py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Register
+              {loading ? "Signing in\u2026" : "Sign in"}
+            </button>
+          </form>
+
+          <div className="mt-5 border-t border-border pt-[18px] text-center text-sm text-text-2">
+            No account?{" "}
+            <Link href="/register" className="font-semibold text-primary hover:underline">
+              Create one
             </Link>
-          </p>
-        </CardContent>
-      </Card>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
