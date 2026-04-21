@@ -85,7 +85,7 @@ export function PublicRoomsModal({ onJoined, open: controlledOpen, onOpenChange,
           Browse public
         </button>
       )}
-      <DialogContent>
+      <DialogContent className="sm:max-w-[580px]">
         <DialogHeader>
           <DialogTitle>Public Rooms</DialogTitle>
         </DialogHeader>
