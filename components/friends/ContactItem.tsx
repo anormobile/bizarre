@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { PresenceDot } from "@/components/PresenceDot";
 import { usePresence } from "@/hooks/usePresence";
+import { useUnread } from "@/lib/unread";
 import type { FriendView } from "@/lib/types";
 
 interface ContactItemProps {
@@ -16,6 +17,7 @@ interface ContactItemProps {
 export function ContactItem({ friend, selected, onSelect, onRemove }: ContactItemProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const unread = useUnread(`dm:${friend.userId}`);
 
   async function handleRemove(e: React.MouseEvent) {
     e.stopPropagation();
@@ -46,9 +48,14 @@ export function ContactItem({ friend, selected, onSelect, onRemove }: ContactIte
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onSelect(friend.userId); }}
       className={`group flex cursor-pointer items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-muted/50 ${selected ? "bg-accent" : ""}`}
     >
-      <span className="flex items-center gap-1.5 truncate font-medium">
+      <span className={`flex items-center gap-1.5 truncate font-medium ${unread > 0 ? "font-bold" : ""}`}>
         <PresenceDot status={usePresence(friend.userId)} />
         @{friend.username}
+        {unread > 0 && (
+          <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-0.5 text-[10px] font-bold text-destructive-foreground">
+            {unread}
+          </span>
+        )}
       </span>
       <div className="flex items-center gap-1">
         {error && <span className="text-[11px] text-destructive">{error}</span>}

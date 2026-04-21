@@ -7,6 +7,7 @@ import { ChatArea } from "@/components/chat/ChatArea";
 import { DmChatArea } from "@/components/chat/DmChatArea";
 import type { EventBus } from "@/components/chat/ChatArea";
 import { setPresenceBulk } from "@/hooks/usePresence";
+import { increment, clear } from "@/lib/unread";
 import { MembersPanel } from "@/components/MembersPanel";
 import type { RoomSummary, WsMessage, FriendView, FriendRequestView, RoomMemberView, PresenceStatus } from "@/lib/types";
 
@@ -67,6 +68,11 @@ export function Shell({ initialMine, currentUserId, currentUsername }: ShellProp
       .catch(() => {});
     return () => { cancelled = true; };
   }, [selectedRoomId]);
+
+  const selectedRoomIdRef = useRef(selectedRoomId);
+  selectedRoomIdRef.current = selectedRoomId;
+  const selectedDmUserIdRef = useRef(selectedDmUserId);
+  selectedDmUserIdRef.current = selectedDmUserId;
 
   const subscribersRef = useRef<Set<(msg: WsMessage) => void>>(new Set());
 
@@ -191,6 +197,21 @@ export function Shell({ initialMine, currentUserId, currentUsername }: ShellProp
         }
       }
 
+      if (msg.type === "MESSAGE_NEW") {
+        const m = msg.payload.message;
+        if (m.userId !== currentUserId) {
+          if ("roomId" in msg.payload && msg.payload.roomId != null) {
+            if (selectedRoomIdRef.current !== msg.payload.roomId) {
+              increment(`room:${msg.payload.roomId}`);
+            }
+          } else if ("dmId" in msg.payload && msg.payload.dmId != null) {
+            if (selectedDmUserIdRef.current !== m.userId) {
+              increment(`dm:${m.userId}`);
+            }
+          }
+        }
+      }
+
       for (const cb of subscribersRef.current) {
         try { cb(msg); } catch { /* ignore subscriber errors */ }
       }
@@ -209,11 +230,13 @@ export function Shell({ initialMine, currentUserId, currentUsername }: ShellProp
   const handleSelectRoom = useCallback((roomId: number) => {
     setSelectedRoomId(roomId);
     setSelectedDmUserId(null);
+    clear(`room:${roomId}`);
   }, []);
 
   const handleSelectDm = useCallback((userId: string) => {
     setSelectedDmUserId(userId);
     setSelectedRoomId(null);
+    clear(`dm:${userId}`);
   }, []);
 
   const selectedRoom = mine.find((r) => r.id === selectedRoomId) ?? null;
