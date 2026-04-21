@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "invalid credentials" }, { status: 401 });
   }
 
-  await createSession(user.id);
+  await createSession(user.id, request.headers);
 
   const publicUser: PublicUser = {
     id: user.id,

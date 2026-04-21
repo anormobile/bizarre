@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     throw err;
   }
 
-  await createSession(user.id);
+  await createSession(user.id, request.headers);
 
   const publicUser: PublicUser = {
     id: user.id,

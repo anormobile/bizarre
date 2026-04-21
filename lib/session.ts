@@ -112,15 +112,41 @@ export async function getSession(
   return row ?? null;
 }
 
+function parseBrowser(ua: string): string {
+  if (/Edg\//i.test(ua)) return "Edge";
+  if (/OPR\//i.test(ua) || /Opera/i.test(ua)) return "Opera";
+  if (/Firefox\//i.test(ua)) return "Firefox";
+  if (/Chrome\//i.test(ua) && !/Chromium/i.test(ua)) return "Chrome";
+  if (/Safari\//i.test(ua) && !/Chrome/i.test(ua)) return "Safari";
+  return "Other";
+}
+
+function parseOS(ua: string): string {
+  if (/Windows/i.test(ua)) return "Windows";
+  if (/Mac OS X|macOS/i.test(ua)) return "macOS";
+  if (/Android/i.test(ua)) return "Android";
+  if (/iPhone|iPad|iPod/i.test(ua)) return "iOS";
+  if (/Linux/i.test(ua)) return "Linux";
+  return "Other";
+}
+
 /**
  * Insert a session row, set the signed cookie, and return the raw session id.
  */
-export async function createSession(userId: string): Promise<string> {
+export async function createSession(userId: string, headers?: Headers): Promise<string> {
   const sessionId = generateSessionId();
   const tokenHash = hashSessionId(sessionId);
+
+  const ua = headers?.get("user-agent") ?? "";
+  const browser = ua ? parseBrowser(ua) : null;
+  const os = ua ? parseOS(ua) : null;
+  const ip = headers?.get("x-forwarded-for")?.split(",")[0]?.trim()
+    ?? headers?.get("x-real-ip")
+    ?? null;
+
   await sql`
-    INSERT INTO sessions (user_id, token_hash)
-    VALUES (${userId}, ${tokenHash})
+    INSERT INTO sessions (user_id, token_hash, browser, os, ip)
+    VALUES (${userId}, ${tokenHash}, ${browser}, ${os}, ${ip})
   `;
   await setSessionCookie(sessionId);
   return sessionId;
