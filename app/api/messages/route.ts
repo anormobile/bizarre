@@ -146,12 +146,30 @@ export async function POST(request: Request) {
       return Response.json({ error: "not a participant" }, { status: 403 });
     }
     otherUserId = dm.user_a === userId ? dm.user_b : dm.user_a;
+    const banCheck = await sql<{ blocker_id: string }[]>`
+      SELECT blocker_id FROM user_bans
+      WHERE (blocker_id = ${userId} AND blocked_id = ${otherUserId})
+         OR (blocker_id = ${otherUserId} AND blocked_id = ${userId})
+      LIMIT 1
+    `;
+    if (banCheck.length > 0) {
+      return Response.json({ error: "banned" }, { status: 403 });
+    }
     if (!(await isConfirmedFriend(userId, otherUserId))) {
       return Response.json({ error: "not friends" }, { status: 403 });
     }
     dmId = dm.id;
   } else {
     otherUserId = bodyUserId!;
+    const banCheck = await sql<{ blocker_id: string }[]>`
+      SELECT blocker_id FROM user_bans
+      WHERE (blocker_id = ${userId} AND blocked_id = ${otherUserId})
+         OR (blocker_id = ${otherUserId} AND blocked_id = ${userId})
+      LIMIT 1
+    `;
+    if (banCheck.length > 0) {
+      return Response.json({ error: "banned" }, { status: 403 });
+    }
     if (!(await isConfirmedFriend(userId, otherUserId))) {
       return Response.json({ error: "not friends" }, { status: 403 });
     }

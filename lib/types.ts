@@ -23,7 +23,7 @@ export type MemberLeftMessage = WsMessageBase<
 
 export interface UserBanNotifyMessage extends WsMessageBase<
   'USER_BAN_NOTIFY',
-  { roomId: number }
+  { roomId?: number; fromUserId?: string }
 > {}
 
 export type RoomUpdatedMessage = WsMessageBase<
