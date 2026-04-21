@@ -90,6 +90,12 @@ export default function LoginPage() {
             >
               {loading ? "Signing in\u2026" : "Sign in"}
             </button>
+
+            <div className="mt-3 text-center">
+              <button type="button" className="text-sm font-medium text-primary hover:underline">
+                Forgot password?
+              </button>
+            </div>
           </form>
 
           <div className="mt-5 border-t border-border pt-[18px] text-center text-sm text-text-2">
