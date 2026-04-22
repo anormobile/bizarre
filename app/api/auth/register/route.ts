@@ -1,7 +1,7 @@
 import sql from "@/lib/db";
 import { registerInputSchema } from "@/lib/schemas";
 import { hashPassword } from "@/lib/password";
-import { createSession } from "@/lib/session";
+import { createSession, signSessionId, getSessionCookieConfig } from "@/lib/session";
 import type { UserRow, PublicUser } from "@/lib/types";
 
 export async function POST(request: Request) {
@@ -55,12 +55,21 @@ export async function POST(request: Request) {
     throw err;
   }
 
-  await createSession(user.id, request.headers);
+  const sessionId = await createSession(user.id, request.headers);
+  const cookieConfig = getSessionCookieConfig();
 
   const publicUser: PublicUser = {
     id: user.id,
     email: user.email,
     username: user.username,
   };
-  return Response.json({ ok: true, user: publicUser }, { status: 201 });
+  return Response.json({
+    ok: true,
+    user: publicUser,
+    sessionCookie: {
+      name: cookieConfig.name,
+      value: signSessionId(sessionId),
+      maxAge: cookieConfig.maxAge,
+    },
+  }, { status: 201 });
 }
