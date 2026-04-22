@@ -20,10 +20,12 @@ docker compose up --build
 
 Open [http://localhost:3000](http://localhost:3000).
 
-The stack starts two containers:
+The stack starts four containers:
 
 - `app` — Next.js + WebSocket server on port `3000`
 - `db` — PostgreSQL 18 on port `5432`, schema auto-loaded from `db/schema.sql`
+- `xmpp-a` — Prosody XMPP server on port `5222` (phase-13)
+- `xmpp-b` — Prosody XMPP server on port `5322`, federated with `xmpp-a` (phase-13)
 
 Attachments persist on the host at `./files/`.
 
@@ -44,6 +46,7 @@ curl -fsS http://localhost:3000/api/health
 - **Attachments**: upload button and copy-paste, image preview, 20 MB file limit, 3 MB image limit, access control by membership.
 - **Moderation**: admin delete any message, ban from room, view banned list with "banned by", unban.
 - **Notifications**: unread counts per room and DM, friend-request badge, invitation badge.
+- **Jabber (XMPP)**: two federated Prosody servers, shared password store with the web auth, admin dashboard at `/admin/xmpp` for live connections. See the Jabber section below.
 
 ## Architecture
 
@@ -87,3 +90,19 @@ node phase-13/test-client.js localhost 5222 alice@xmpp-a alicepass bob@xmpp-b "h
 ```
 
 The listener prints the message and exits 0. Reverse direction works the same way.
+
+### Admin dashboard
+
+Log in to the web app as a user with `is_admin = true` (seed user `alice` is flagged admin by default) and open [http://localhost:3000/admin/xmpp](http://localhost:3000/admin/xmpp). The page lists every live Jabber connection across both servers — JID, domain, remote IP, connected-since. The table refreshes every 5 seconds. Non-admin accounts get redirected.
+
+### How auth is shared
+
+Prosody authenticates each client via HTTP callback to `/api/internal/xmpp-auth`. The callback verifies against the scrypt hash stored in `users.password_hash`. Register once in the web app; use the same email/username and password from any Jabber client.
+
+### Test the full flow
+
+1. `docker compose up --build`
+2. Open the web app, log in as `alice`, visit `/admin/xmpp` — empty table.
+3. In a terminal, run the listener from above.
+4. Refresh `/admin/xmpp` — `bob@xmpp-b` appears within 5 s.
+5. Send a federated message with the third command above — admin table still shows the listener, regression-free.

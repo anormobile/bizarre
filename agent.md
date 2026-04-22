@@ -19,6 +19,7 @@
 - PostgreSQL **18** — image `postgres:18-alpine`
 - `postgres.js` **3.4.9+** — tagged-template SQL, no ORM
 - Zod **4** — input + env validation
+- **Prosody 0.12** (phase-13 only) — XMPP c2s + s2s, HTTP-delegated auth, custom Lua modules in `prosody/modules/`
 
 **Fan-out**: single Node container. `Map<roomId, Set<WebSocket>>`. No Redis. Fits 300-user target.
 
@@ -26,9 +27,11 @@
 
 - `app` — Next.js + WebSocket server, port 3000, healthcheck on `/api/health`
 - `db` — PostgreSQL 18, port 5432, db `chat`, user `postgres`, password `password`
+- `xmpp-a` — Prosody XMPP server, host port 5222 c2s, container port 5269 s2s + 5280 http (phase-13)
+- `xmpp-b` — Prosody XMPP server, host port 5322 c2s, container port 5269 s2s + 5280 http (phase-13)
 - `files/` — bind mount for attachment storage
 
-No `version:` key. Zero external services.
+No `version:` key. The two Prosody services exist only because §6.2 federation requires a second server. They share one compose network with `app` and `db`.
 
 ## File Structure
 
@@ -51,8 +54,11 @@ project/
 │   ├── not-found.tsx
 │   ├── global-error.tsx
 │   ├── globals.css
+│   ├── admin/xmpp/          # phase-13 — Jabber connection dashboard
 │   └── api/
 │       ├── health/route.ts
+│       ├── admin/xmpp/stats/route.ts        # phase-13
+│       ├── internal/xmpp-auth/route.ts      # phase-13 — Prosody auth bridge
 │       └── [resource]/route.ts
 ├── components/
 │   └── ui/
@@ -61,9 +67,18 @@ project/
 │   ├── env.ts
 │   ├── schemas.ts
 │   ├── types.ts
+│   ├── admin.ts             # phase-13
 │   └── websocket.ts
-└── hooks/
-    └── useWebSocket.ts
+├── hooks/
+│   └── useWebSocket.ts
+├── prosody/                 # phase-13
+│   ├── xmpp-a.cfg.lua
+│   ├── xmpp-b.cfg.lua
+│   └── modules/
+│       ├── mod_auth_custom_http.lua
+│       └── mod_http_admin_api.lua
+└── phase-13/
+    └── test-client.js       # Jabber smoke + federation test client
 ```
 
 ## Conventions
@@ -348,6 +363,12 @@ Modals: `CreateRoomModal`, `ManageRoomModal`, `PublicRoomsModal`, `AddContactMod
 - Edited indicator on messages
 - Unread counts per chat
 
+### Post-core additions (shipped — phase-13 branch merged)
+
+- Jabber c2s via Prosody against the existing `users` table (Requirements v3 §6.1)
+- Federation between `xmpp-a` and `xmpp-b` (§6.2)
+- Admin connection dashboard at `/admin/xmpp` gated by `users.is_admin` (§6.3)
+
 ### Out of scope (will not build)
 
 - Password reset email flow — stub route only
@@ -368,6 +389,8 @@ Modals: `CreateRoomModal`, `ManageRoomModal`, `PublicRoomsModal`, `AddContactMod
 9. Attachments: upload + store in `/files` + download with access check
 10. Admin: delete-others + ban from room
 11. Polish: error pages final, README final, receipt merged PDF
+12. Validation fixes: design-parity, admin tabs, not-implemented stubs (merged)
+13. Jabber + federation + admin dashboard (§6.1 / §6.2 / §6.3) (merged from branch `phase-13-jabber`)
 
 ## ADR Log
 
