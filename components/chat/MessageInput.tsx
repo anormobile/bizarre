@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import type { MessageView } from "@/lib/types";
 
 const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;
@@ -33,8 +33,21 @@ export function MessageInput({ roomId, dmId, dmUserId, onSent, replyingTo, onCle
   const [error, setError] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [focused, setFocused] = useState(false);
+  const [emojiOpen, setEmojiOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const emojiRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!emojiOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (emojiRef.current && !emojiRef.current.contains(e.target as Node)) {
+        setEmojiOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [emojiOpen]);
 
   const validateFile = useCallback((file: File): string | null => {
     if (file.size > MAX_ATTACHMENT_BYTES) return "file too large";
@@ -116,6 +129,32 @@ export function MessageInput({ roomId, dmId, dmUserId, onSent, replyingTo, onCle
     }
   }, [content, roomId, dmId, dmUserId, sending, selectedFile, onSent, replyingTo, onClearReply]);
 
+  const EMOJIS = [
+    '😀','😂','🥹','😍','🤩','😘','😜','🤪','😎','🥳',
+    '😭','😤','🤯','🫡','🤔','🫠','😴','🤮','👻','💀',
+    '👋','👍','👎','👏','🙌','🤝','✌️','🤞','💪','🫶',
+    '❤️','🧡','💛','💚','💙','💜','🖤','🤍','💔','❤️‍🔥',
+    '🔥','✨','🎉','💯','⭐','🌈','☀️','🌙','🍕','☕',
+  ];
+
+  const insertEmoji = useCallback((emoji: string) => {
+    const ta = textareaRef.current;
+    if (ta) {
+      const start = ta.selectionStart ?? content.length;
+      const end = ta.selectionEnd ?? content.length;
+      const next = content.slice(0, start) + emoji + content.slice(end);
+      setContent(next);
+      requestAnimationFrame(() => {
+        ta.focus();
+        const pos = start + emoji.length;
+        ta.setSelectionRange(pos, pos);
+      });
+    } else {
+      setContent(prev => prev + emoji);
+    }
+    setEmojiOpen(false);
+  }, [content]);
+
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -148,14 +187,31 @@ export function MessageInput({ roomId, dmId, dmUserId, onSent, replyingTo, onCle
         }`}
       >
         <div className="flex gap-px self-end pb-1">
-          <button
-            type="button"
-            disabled={sending}
-            className="flex h-7 w-7 items-center justify-center rounded-md text-text-3 transition-colors hover:text-primary disabled:opacity-50"
-            title="Emoji"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.8"/><path d="M8 14s1.5 2 4 2 4-2 4-2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/><circle cx="9" cy="9.5" r="1" fill="currentColor"/><circle cx="15" cy="9.5" r="1" fill="currentColor"/></svg>
-          </button>
+          <div ref={emojiRef} className="relative">
+            <button
+              type="button"
+              onClick={() => setEmojiOpen(o => !o)}
+              disabled={sending}
+              className="flex h-7 w-7 items-center justify-center rounded-md text-text-3 transition-colors hover:text-primary disabled:opacity-50"
+              title="Emoji"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.8"/><path d="M8 14s1.5 2 4 2 4-2 4-2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/><circle cx="9" cy="9.5" r="1" fill="currentColor"/><circle cx="15" cy="9.5" r="1" fill="currentColor"/></svg>
+            </button>
+            {emojiOpen && (
+              <div className="absolute bottom-full left-0 z-50 mb-2 grid w-[280px] grid-cols-10 gap-0.5 rounded-xl border border-border bg-surface p-2 shadow-[0_8px_28px_rgba(0,0,0,0.12)]">
+                {EMOJIS.map(e => (
+                  <button
+                    key={e}
+                    type="button"
+                    onClick={() => insertEmoji(e)}
+                    className="flex h-7 w-7 items-center justify-center rounded-md text-base hover:bg-bg"
+                  >
+                    {e}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
