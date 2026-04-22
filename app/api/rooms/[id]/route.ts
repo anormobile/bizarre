@@ -1,5 +1,6 @@
 import { unlink } from "node:fs/promises";
 import path from "path";
+import { z } from "zod";
 import sql from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { broadcast } from "@/lib/websocket";
@@ -133,6 +134,72 @@ export async function DELETE(
   broadcast(
     memberIds.map((m) => m.user_id),
     { type: "ROOM_DELETED", payload: { roomId }, timestamp: Date.now() },
+  );
+
+  return Response.json({ ok: true });
+}
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const session = await authenticate();
+  if (!session) return Response.json({ error: "unauthorized" }, { status: 401 });
+
+  const { id } = await params;
+  const roomId = Number(id);
+  if (!Number.isFinite(roomId)) return Response.json({ error: "not found" }, { status: 404 });
+
+  const rooms = await sql<RoomRow[]>`
+    SELECT id, name, description, visibility, owner_id, created_at, deleted_at
+    FROM rooms WHERE id = ${roomId} AND deleted_at IS NULL
+  `;
+  const room = rooms[0];
+  if (!room) return Response.json({ error: "not found" }, { status: 404 });
+
+  const userId = session.user_id;
+  const membership = await sql<RoomMemberRow[]>`
+    SELECT room_id, user_id, role, joined_at
+    FROM room_members WHERE room_id = ${roomId} AND user_id = ${userId}
+  `;
+  if (membership.length === 0 || membership[0]!.role === "member") {
+    return Response.json({ error: "forbidden" }, { status: 403 });
+  }
+
+  const body = await request.json().catch(() => null);
+  if (!body || typeof body !== "object") {
+    return Response.json({ error: "invalid body" }, { status: 400 });
+  }
+
+  const updateSchema = z.object({
+    name: z.string().min(3).max(48).regex(/^[a-zA-Z0-9_-]+$/, "invalid name").optional(),
+    description: z.string().max(256).nullable().optional(),
+    visibility: z.enum(["public", "private"]).optional(),
+  });
+  const parsed = updateSchema.safeParse(body);
+  if (!parsed.success) {
+    return Response.json({ error: parsed.error.issues[0]?.message ?? "invalid input" }, { status: 400 });
+  }
+
+  const { name, description, visibility } = parsed.data;
+
+  const finalName = name ?? room.name;
+  const finalDesc = description !== undefined ? description : room.description;
+  const finalVis = visibility ?? room.visibility;
+
+  await sql`
+    UPDATE rooms
+    SET name = ${finalName}, description = ${finalDesc}, visibility = ${finalVis}
+    WHERE id = ${roomId} AND deleted_at IS NULL
+  `;
+
+  const memberIds = await sql<{ user_id: string }[]>`
+    SELECT user_id FROM room_members WHERE room_id = ${roomId}
+  `;
+
+  broadcast(
+    memberIds.map((m) => m.user_id),
+    { type: "ROOM_UPDATED", payload: { roomId, name: finalName, description: finalDesc, visibility: finalVis }, timestamp: Date.now() },
   );
 
   return Response.json({ ok: true });
