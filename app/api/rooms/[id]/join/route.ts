@@ -73,16 +73,5 @@ export async function POST(
     timestamp: Date.now(),
   });
 
-  broadcast([userId], {
-    type: "ROOM_UPDATED",
-    payload: {
-      roomId,
-      name: room.name,
-      description: room.description,
-      visibility: room.visibility,
-    },
-    timestamp: Date.now(),
-  });
-
   return Response.json({ ok: true });
 }

@@ -101,7 +101,7 @@ export function Sidebar({
 
   function handleCreated(room: RoomSummary) {
     onMineChange(
-      mine.some((r) => r.id === room.id) ? mine : [room, ...mine],
+      mine.some((r) => Number(r.id) === Number(room.id)) ? mine : [room, ...mine],
     );
   }
 
@@ -129,13 +129,13 @@ export function Sidebar({
       <div className="flex-1 overflow-y-auto px-1.5 py-1">
         <SidebarSection label="Rooms" open={sections.rooms} onToggle={() => toggleSection('rooms')}>
           {publicRooms.map((r) => (
-            <RoomItem key={r.id} room={r} selected={selectedRoomId === r.id} onSelect={(room) => onSelect(room.id)} />
+            <RoomItem key={r.id} room={r} selected={selectedRoomId != null && Number(selectedRoomId) === Number(r.id)} onSelect={(room) => onSelect(room.id)} />
           ))}
         </SidebarSection>
 
         <SidebarSection label="Private" open={sections.private} onToggle={() => toggleSection('private')}>
           {privateRooms.map((r) => (
-            <RoomItem key={r.id} room={r} selected={selectedRoomId === r.id} onSelect={(room) => onSelect(room.id)} />
+            <RoomItem key={r.id} room={r} selected={selectedRoomId != null && Number(selectedRoomId) === Number(r.id)} onSelect={(room) => onSelect(room.id)} />
           ))}
         </SidebarSection>
 

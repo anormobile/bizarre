@@ -106,27 +106,19 @@ export function Shell({ initialMine, currentUserId, currentUsername, afkIdleMs }
 
   const onMessage = useCallback(
     (msg: WsMessage) => {
+      const rid = (a: number | string | null | undefined, b: number | string | null | undefined) =>
+        a != null && b != null && Number(a) === Number(b);
+
       switch (msg.type) {
         case "ROOM_UPDATED": {
           const { roomId, name, description, visibility } = msg.payload;
           setMine((prev) => {
-            const existing = prev.find((r) => r.id === roomId);
+            const existing = prev.find((r) => rid(r.id, roomId));
             if (existing) {
               return prev.map((r) =>
-                r.id === roomId ? { ...r, name, description, visibility } : r,
+                rid(r.id, roomId) ? { ...r, name, description, visibility } : r,
               );
             }
-            fetch(`/api/rooms/${roomId}`)
-              .then((res) => (res.ok ? res.json() : null))
-              .then((data) => {
-                if (data?.room) {
-                  setMine((p) => {
-                    if (p.some((r) => r.id === roomId)) return p;
-                    return [data.room as RoomSummary, ...p];
-                  });
-                }
-              })
-              .catch(() => {});
             return prev;
           });
           break;
@@ -135,13 +127,13 @@ export function Shell({ initialMine, currentUserId, currentUsername, afkIdleMs }
           const { roomId, userId, username, role } = msg.payload;
           if (userId === currentUserId) {
             setMine((prev) => {
-              if (prev.some((r) => r.id === roomId)) return prev;
+              if (prev.some((r) => rid(r.id, roomId))) return prev;
               fetch(`/api/rooms/${roomId}`)
                 .then((res) => (res.ok ? res.json() : null))
                 .then((data) => {
                   if (data?.room) {
                     setMine((p) => {
-                      if (p.some((r) => r.id === roomId)) return p;
+                      if (p.some((r) => rid(r.id, data.room.id))) return p;
                       return [data.room as RoomSummary, ...p];
                     });
                   }
@@ -152,7 +144,7 @@ export function Shell({ initialMine, currentUserId, currentUsername, afkIdleMs }
           } else {
             setMine((prev) =>
               prev.map((r) =>
-                r.id === roomId ? { ...r, memberCount: r.memberCount + 1 } : r,
+                rid(r.id, roomId) ? { ...r, memberCount: r.memberCount + 1 } : r,
               ),
             );
           }
@@ -167,12 +159,12 @@ export function Shell({ initialMine, currentUserId, currentUsername, afkIdleMs }
         case "MEMBER_LEFT": {
           const { roomId, userId } = msg.payload;
           if (userId === currentUserId) {
-            setMine((prev) => prev.filter((r) => r.id !== roomId));
-            setSelectedRoomId((sel) => (sel === roomId ? null : sel));
+            setMine((prev) => prev.filter((r) => !rid(r.id, roomId)));
+            setSelectedRoomId((sel) => (rid(sel, roomId) ? null : sel));
           } else {
             setMine((prev) =>
               prev.map((r) =>
-                r.id === roomId
+                rid(r.id, roomId)
                   ? { ...r, memberCount: Math.max(0, r.memberCount - 1) }
                   : r,
               ),
@@ -183,14 +175,14 @@ export function Shell({ initialMine, currentUserId, currentUsername, afkIdleMs }
         }
         case "USER_BAN_NOTIFY": {
           const { roomId } = msg.payload;
-          setMine((prev) => prev.filter((r) => Number(r.id) !== Number(roomId)));
-          setSelectedRoomId((sel) => (Number(sel) === Number(roomId) ? null : sel));
+          setMine((prev) => prev.filter((r) => !rid(r.id, roomId)));
+          setSelectedRoomId((sel) => (rid(sel, roomId) ? null : sel));
           break;
         }
         case "ROOM_DELETED": {
           const { roomId } = msg.payload;
-          setMine((prev) => prev.filter((r) => r.id !== roomId));
-          setSelectedRoomId((sel) => (sel === roomId ? null : sel));
+          setMine((prev) => prev.filter((r) => !rid(r.id, roomId)));
+          setSelectedRoomId((sel) => (rid(sel, roomId) ? null : sel));
           break;
         }
         case "FRIEND_REQUEST_RECEIVED": {
@@ -226,7 +218,7 @@ export function Shell({ initialMine, currentUserId, currentUsername, afkIdleMs }
           setRoomMembers(prev => prev.map(m =>
             m.userId === userId ? { ...m, role } : m
           ));
-          if (Number(selectedRoomIdRef.current) === Number(roomId)) {
+          if (rid(selectedRoomIdRef.current, roomId)) {
             fetch(`/api/rooms/${roomId}/members`)
               .then((r) => (r.ok ? r.json() : null))
               .then((data) => { if (data?.members) setRoomMembers(data.members); })
@@ -240,7 +232,7 @@ export function Shell({ initialMine, currentUserId, currentUsername, afkIdleMs }
         const m = msg.payload.message;
         if (m.userId !== currentUserId) {
           if ("roomId" in msg.payload && msg.payload.roomId != null) {
-            if (selectedRoomIdRef.current !== msg.payload.roomId) {
+            if (!rid(selectedRoomIdRef.current, msg.payload.roomId)) {
               increment(`room:${msg.payload.roomId}`);
             }
           } else if ("dmId" in msg.payload && msg.payload.dmId != null) {
@@ -280,7 +272,7 @@ export function Shell({ initialMine, currentUserId, currentUsername, afkIdleMs }
     clear(`dm:${userId}`);
   }, []);
 
-  const selectedRoom = mine.find((r) => r.id === selectedRoomId) ?? null;
+  const selectedRoom = mine.find((r) => selectedRoomId != null && Number(r.id) === Number(selectedRoomId)) ?? null;
   const selectedFriend = friends.find((f) => f.userId === selectedDmUserId) ?? null;
   const viewerRoomRole = (() => {
     const role = roomMembers.find((m) => m.userId === currentUserId)?.role ?? null;
@@ -329,7 +321,7 @@ export function Shell({ initialMine, currentUserId, currentUsername, afkIdleMs }
 
   function handleJoined(room: RoomSummary) {
     setMine((prev) =>
-      prev.some((r) => r.id === room.id)
+      prev.some((r) => Number(r.id) === Number(room.id))
         ? prev
         : [{ ...room, memberCount: room.memberCount + 1 }, ...prev],
     );
@@ -450,11 +442,11 @@ export function Shell({ initialMine, currentUserId, currentUsername, afkIdleMs }
           currentUserId={currentUserId}
           onRoomUpdated={(partial) => {
             setMine((prev) =>
-              prev.map((r) => (r.id === selectedRoom.id ? { ...r, ...partial } : r)),
+              prev.map((r) => (Number(r.id) === Number(selectedRoom.id) ? { ...r, ...partial } : r)),
             );
           }}
           onRoomDeleted={() => {
-            setMine((prev) => prev.filter((r) => r.id !== selectedRoom.id));
+            setMine((prev) => prev.filter((r) => Number(r.id) !== Number(selectedRoom.id)));
             setSelectedRoomId(null);
           }}
           onMembersRefresh={() => {

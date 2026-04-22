@@ -20,9 +20,12 @@ export function useWebSocket(
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onMessageRef = useRef(onMessage);
   onMessageRef.current = onMessage;
+  const mountedRef = useRef(true);
   const [connected, setConnected] = useState(false);
 
   const connect = useCallback(() => {
+    if (!mountedRef.current) return;
+
     const ws = new WebSocket(url);
     wsRef.current = ws;
 
@@ -45,6 +48,7 @@ export function useWebSocket(
 
     ws.onclose = () => {
       setConnected(false);
+      if (!mountedRef.current) return;
       timerRef.current = setTimeout(() => {
         backoffRef.current = Math.min(backoffRef.current * 2, MAX_BACKOFF_MS);
         connect();
@@ -53,9 +57,11 @@ export function useWebSocket(
   }, [url]);
 
   useEffect(() => {
+    mountedRef.current = true;
     connect();
 
     return () => {
+      mountedRef.current = false;
       if (timerRef.current) clearTimeout(timerRef.current);
       wsRef.current?.close();
     };

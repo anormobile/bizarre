@@ -53,7 +53,13 @@ export function PublicRoomsModal({ onJoined, open: controlledOpen, onOpenChange,
     try {
       const res = await fetch(`/api/rooms/${room.id}/join`, { method: "POST" });
       if (res.ok) {
-        setCatalog((prev) => prev.filter((r) => r.id !== room.id));
+        setCatalog((prev) =>
+          prev.map((r) =>
+            Number(r.id) === Number(room.id)
+              ? { ...r, joined: true, memberCount: r.memberCount + 1 }
+              : r,
+          ),
+        );
         onJoined(room);
       } else {
         const data = await res.json();
