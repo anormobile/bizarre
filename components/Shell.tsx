@@ -222,8 +222,11 @@ export function Shell({ initialMine, currentUserId, currentUsername, afkIdleMs }
           break;
         }
         case "ROOM_MEMBER_ROLE_CHANGED": {
-          const { roomId } = msg.payload;
-          if (selectedRoomIdRef.current === roomId) {
+          const { roomId, userId, role } = msg.payload;
+          setRoomMembers(prev => prev.map(m =>
+            m.userId === userId ? { ...m, role } : m
+          ));
+          if (Number(selectedRoomIdRef.current) === Number(roomId)) {
             fetch(`/api/rooms/${roomId}/members`)
               .then((r) => (r.ok ? r.json() : null))
               .then((data) => { if (data?.members) setRoomMembers(data.members); })
