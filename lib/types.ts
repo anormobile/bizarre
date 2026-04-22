@@ -209,6 +209,7 @@ export interface RoomSummary {
   ownerId: string;
   memberCount: number;
   joinedAt?: string;
+  joined?: boolean;
 }
 
 export interface FriendshipRow {

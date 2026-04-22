@@ -113,13 +113,11 @@ export async function GET() {
       r.description,
       r.visibility,
       r.owner_id AS "ownerId",
-      (SELECT COUNT(*)::int FROM room_members WHERE room_id = r.id) AS "memberCount"
+      (SELECT COUNT(*)::int FROM room_members WHERE room_id = r.id) AS "memberCount",
+      EXISTS (SELECT 1 FROM room_members WHERE room_id = r.id AND user_id = ${userId}) AS "joined"
     FROM rooms r
     WHERE r.visibility = 'public'
       AND r.deleted_at IS NULL
-      AND NOT EXISTS (
-        SELECT 1 FROM room_members WHERE room_id = r.id AND user_id = ${userId}
-      )
     ORDER BY r.created_at DESC
   `;
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -27,7 +27,7 @@ export function PublicRoomsModal({ onJoined, open: controlledOpen, onOpenChange,
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
 
-  async function fetchCatalog() {
+  const fetchCatalog = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
@@ -41,7 +41,11 @@ export function PublicRoomsModal({ onJoined, open: controlledOpen, onOpenChange,
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) fetchCatalog();
+  }, [isOpen, fetchCatalog]);
 
   async function handleJoin(room: RoomSummary) {
     setJoining(room.id);
@@ -118,13 +122,19 @@ export function PublicRoomsModal({ onJoined, open: controlledOpen, onOpenChange,
                 )}
                 <div className="mt-0.5 text-[11px] text-text-3">{room.memberCount} members</div>
               </div>
-              <button
-                onClick={() => handleJoin(room)}
-                disabled={joining === room.id}
-                className="shrink-0 rounded-lg bg-primary px-4 py-1.5 text-[13px] font-semibold text-white transition-colors hover:bg-primary-hover disabled:opacity-50"
-              >
-                {joining === room.id ? "Joining\u2026" : "Join"}
-              </button>
+              {room.joined ? (
+                <span className="shrink-0 rounded-lg bg-bg px-4 py-1.5 text-[13px] font-semibold text-text-3">
+                  Joined
+                </span>
+              ) : (
+                <button
+                  onClick={() => handleJoin(room)}
+                  disabled={joining === room.id}
+                  className="shrink-0 rounded-lg bg-primary px-4 py-1.5 text-[13px] font-semibold text-white transition-colors hover:bg-primary-hover disabled:opacity-50"
+                >
+                  {joining === room.id ? "Joining\u2026" : "Join"}
+                </button>
+              )}
             </div>
           ))}
         </div>
