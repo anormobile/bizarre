@@ -60,5 +60,20 @@ export async function GET(
     status: (r.status as RoomMemberView["status"]) ?? "offline",
   }));
 
-  return Response.json({ members });
+  const pendingRows = await sql<{ userId: string; username: string }[]>`
+    SELECT ri.invited_user AS "userId", u.username
+    FROM room_invitations ri
+    JOIN users u ON u.id = ri.invited_user
+    WHERE ri.room_id = ${roomId} AND ri.status = 'pending'
+    ORDER BY u.username ASC
+  `;
+
+  const pending: RoomMemberView[] = pendingRows.map((r) => ({
+    userId: r.userId,
+    username: r.username,
+    role: "pending",
+    status: "offline",
+  }));
+
+  return Response.json({ members: [...members, ...pending] });
 }

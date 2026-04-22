@@ -19,9 +19,11 @@ interface Invitation {
 
 interface InvitationsModalProps {
   onJoined?: (room: RoomSummary) => void;
+  inviteCount?: number;
+  onCountReset?: () => void;
 }
 
-export function InvitationsModal({ onJoined }: InvitationsModalProps) {
+export function InvitationsModal({ onJoined, inviteCount = 0, onCountReset }: InvitationsModalProps) {
   const [open, setOpen] = useState(false);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(false);
@@ -36,6 +38,12 @@ export function InvitationsModal({ onJoined }: InvitationsModalProps) {
       }
     } catch { /* ignore */ }
     setLoading(false);
+  }
+
+  function handleOpen() {
+    setOpen(true);
+    fetchInvitations();
+    onCountReset?.();
   }
 
   async function handleAccept(inv: Invitation) {
@@ -67,16 +75,21 @@ export function InvitationsModal({ onJoined }: InvitationsModalProps) {
     <Dialog
       open={open}
       onOpenChange={(val) => {
-        setOpen(val);
-        if (val) fetchInvitations();
+        if (val) handleOpen();
+        else setOpen(false);
       }}
     >
       <button
         type="button"
-        onClick={() => { setOpen(true); fetchInvitations(); }}
-        className="mx-2.5 mb-1 rounded-md border border-border px-2 py-1 text-[11px] font-medium text-text-2 transition-colors hover:border-primary hover:text-primary"
+        onClick={handleOpen}
+        className="flex w-full items-center justify-between rounded-md border border-border px-2 py-1 text-[11px] font-medium text-text-2 transition-colors hover:border-primary hover:text-primary"
       >
-        Invitations{invitations.length > 0 ? ` (${invitations.length})` : ""}
+        <span>Invitations</span>
+        {inviteCount > 0 && (
+          <span className="inline-flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-unread px-1 text-[10px] font-bold text-white">
+            {inviteCount}
+          </span>
+        )}
       </button>
       <DialogContent>
         <DialogHeader>

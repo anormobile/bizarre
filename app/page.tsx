@@ -2,9 +2,6 @@ import { redirect } from "next/navigation";
 import sql from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { env } from "@/lib/env";
-import { LogoutButton } from "@/components/LogoutButton";
-import { ChangePasswordModal } from "@/components/auth/ChangePasswordModal";
-import { WsStatus } from "@/components/WsStatus";
 import { Shell } from "@/components/Shell";
 import type { SessionRow, RoomSummary } from "@/lib/types";
 
@@ -42,18 +39,11 @@ export default async function Home() {
   `;
 
   return (
-    <div className="flex h-screen flex-col">
-      <header className="flex items-center justify-between border-b px-4 py-2">
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-semibold">@{user.username}</span>
-          <WsStatus />
-        </div>
-        <div className="flex items-center gap-2">
-          <ChangePasswordModal />
-          <LogoutButton />
-        </div>
-      </header>
-      <Shell initialMine={mine} currentUserId={session.user_id} currentUsername={user.username} afkIdleMs={env.AFK_IDLE_MS} />
-    </div>
+    <Shell
+      initialMine={mine}
+      currentUserId={session.user_id}
+      currentUsername={user.username}
+      afkIdleMs={env.AFK_IDLE_MS}
+    />
   );
 }

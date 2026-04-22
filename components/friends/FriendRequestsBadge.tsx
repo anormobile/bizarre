@@ -7,7 +7,7 @@ interface FriendRequestsBadgeProps {
 export function FriendRequestsBadge({ count }: FriendRequestsBadgeProps) {
   if (count === 0) return null;
   return (
-    <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-[11px] font-semibold text-destructive-foreground">
+    <span className="inline-flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-unread px-1 text-[10px] font-bold text-white">
       {count}
     </span>
   );

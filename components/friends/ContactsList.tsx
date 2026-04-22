@@ -13,12 +13,12 @@ interface ContactsListProps {
 export function ContactsList({ friends, selectedUserId, onSelect, onRemove }: ContactsListProps) {
   if (friends.length === 0) {
     return (
-      <p className="px-3 py-2 text-xs text-muted-foreground">No contacts yet</p>
+      <p className="px-3 py-2 text-xs text-text-3">No contacts yet</p>
     );
   }
 
   return (
-    <div className="flex flex-col gap-0.5">
+    <div className="flex flex-col">
       {friends.map((f) => (
         <ContactItem
           key={f.userId}

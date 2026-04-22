@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { Avatar } from "@/components/Avatar";
+import { PresenceDot } from "@/components/PresenceDot";
+import { usePresence } from "@/hooks/usePresence";
 import { MessageList } from "@/components/chat/MessageList";
 import { MessageInput } from "@/components/chat/MessageInput";
 import type { EventBus } from "@/components/chat/ChatArea";
@@ -11,6 +14,31 @@ interface DmChatAreaProps {
   friendUsername: string;
   currentUserId: string;
   eventBus: EventBus;
+}
+
+function DmHeader({ username, userId }: { username: string; userId: string }) {
+  const status = usePresence(userId);
+  return (
+    <div className="flex shrink-0 items-center gap-3 border-b border-border px-4 py-[11px]">
+      <div className="relative">
+        <Avatar username={username} size={34} />
+        <PresenceDot
+          status={status}
+          size={10}
+          borderColor="var(--color-surface)"
+          className="absolute bottom-0 right-0"
+        />
+      </div>
+      <div>
+        <h2 className="text-[15px] font-bold text-text">{username}</h2>
+        <p className="mt-px flex items-center gap-[5px] text-xs text-text-2">
+          <PresenceDot status={status} size={7} />
+          <span className="capitalize">{status}</span>
+          <span> · @{username}</span>
+        </p>
+      </div>
+    </div>
+  );
 }
 
 export function DmChatArea({ friendUserId, friendUsername, currentUserId, eventBus }: DmChatAreaProps) {
@@ -80,7 +108,7 @@ export function DmChatArea({ friendUserId, friendUsername, currentUserId, eventB
   useEffect(() => {
     const unsub = eventBus.subscribe((msg) => {
       if (msg.type === "MESSAGE_NEW" && "dmId" in msg.payload && msg.payload.dmId !== undefined) {
-        if (dmId !== null && msg.payload.dmId === dmId) {
+        if (dmId !== null && Number(msg.payload.dmId) === Number(dmId)) {
           setMessages((prev) => {
             if (prev.some((m) => m.id === msg.payload.message.id)) return prev;
             return [...prev, msg.payload.message];
@@ -110,7 +138,7 @@ export function DmChatArea({ friendUserId, friendUsername, currentUserId, eventB
           }
         }
       }
-      if (msg.type === "MESSAGE_EDITED" && "dmId" in msg.payload && msg.payload.dmId !== undefined && msg.payload.dmId === dmId) {
+      if (msg.type === "MESSAGE_EDITED" && "dmId" in msg.payload && msg.payload.dmId !== undefined && Number(msg.payload.dmId) === Number(dmId)) {
         setMessages((prev) =>
           prev.map((m) =>
             m.id === msg.payload.messageId
@@ -119,7 +147,7 @@ export function DmChatArea({ friendUserId, friendUsername, currentUserId, eventB
           ),
         );
       }
-      if (msg.type === "MESSAGE_DELETED" && "dmId" in msg.payload && msg.payload.dmId !== undefined && msg.payload.dmId === dmId) {
+      if (msg.type === "MESSAGE_DELETED" && "dmId" in msg.payload && msg.payload.dmId !== undefined && Number(msg.payload.dmId) === Number(dmId)) {
         setMessages((prev) =>
           prev.map((m) =>
             m.id === msg.payload.messageId
@@ -164,6 +192,13 @@ export function DmChatArea({ friendUserId, friendUsername, currentUserId, eventB
     if (message.dmId !== null && dmId === null) {
       setDmId(message.dmId);
     }
+    setMessages((prev) => {
+      if (prev.some((m) => m.id === message.id)) return prev;
+      return [...prev, message];
+    });
+    requestAnimationFrame(() => {
+      if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
+    });
   }
 
   async function handleEdit(id: number, content: string) {
@@ -180,25 +215,21 @@ export function DmChatArea({ friendUserId, friendUsername, currentUserId, eventB
 
   if (notFriends) {
     return (
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <div className="flex items-center border-b px-4 py-2">
-          <span className="text-sm font-semibold">@{friendUsername}</span>
-        </div>
+      <div className="flex min-w-0 flex-1 flex-col bg-surface">
+        <DmHeader username={friendUsername} userId={friendUserId} />
         <div className="flex flex-1 items-center justify-center p-6">
-          <p className="text-sm text-muted-foreground">You are no longer friends with this user.</p>
+          <p className="text-sm text-text-3">You are no longer friends with this user.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
-      <div className="flex items-center border-b px-4 py-2">
-        <span className="text-sm font-semibold">@{friendUsername}</span>
-      </div>
+    <div className="flex min-w-0 flex-1 flex-col bg-surface">
+      <DmHeader username={friendUsername} userId={friendUserId} />
       {loading && messages.length === 0 ? (
         <div className="flex flex-1 items-center justify-center">
-          <p className="text-sm text-muted-foreground">Loading messages…</p>
+          <p className="text-sm text-text-3">Loading messages…</p>
         </div>
       ) : (
         <MessageList
@@ -212,8 +243,8 @@ export function DmChatArea({ friendUserId, friendUsername, currentUserId, eventB
         />
       )}
       {frozen ? (
-        <div className="border-t px-4 py-3 text-center">
-          <p className="text-sm text-muted-foreground">This conversation has been frozen.</p>
+        <div className="border-t border-border px-4 py-3 text-center">
+          <p className="text-sm text-text-3">This conversation has been frozen.</p>
         </div>
       ) : (
         <MessageInput

@@ -60,7 +60,7 @@ export function ChatArea({ room, currentUserId, eventBus, viewerRoomRole }: Chat
 
   useEffect(() => {
     const unsub = eventBus.subscribe((msg) => {
-      if (msg.type === "MESSAGE_NEW" && msg.payload.roomId === room.id) {
+      if (msg.type === "MESSAGE_NEW" && Number(msg.payload.roomId) === Number(room.id)) {
         setMessages((prev) => {
           if (prev.some((m) => m.id === msg.payload.message.id)) return prev;
           return [...prev, msg.payload.message];
@@ -72,7 +72,7 @@ export function ChatArea({ room, currentUserId, eventBus, viewerRoomRole }: Chat
           if (atBottom) el.scrollTop = el.scrollHeight;
         });
       }
-      if (msg.type === "MESSAGE_EDITED" && msg.payload.roomId === room.id) {
+      if (msg.type === "MESSAGE_EDITED" && Number(msg.payload.roomId) === Number(room.id)) {
         setMessages((prev) =>
           prev.map((m) =>
             m.id === msg.payload.messageId
@@ -137,13 +137,18 @@ export function ChatArea({ room, currentUserId, eventBus, viewerRoomRole }: Chat
   }
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
-      <div className="flex items-center border-b px-4 py-2">
-        <span className="text-sm font-semibold">#{room.name}</span>
+    <div className="flex min-w-0 flex-1 flex-col bg-surface">
+      <div className="flex shrink-0 items-center gap-3 border-b border-border px-4 py-[11px]">
+        <div>
+          <h2 className="text-[15px] font-bold text-text">#{room.name}</h2>
+          {room.description && (
+            <p className="mt-px text-xs text-text-2">{room.description}</p>
+          )}
+        </div>
       </div>
       {loading && messages.length === 0 ? (
         <div className="flex flex-1 items-center justify-center">
-          <p className="text-sm text-muted-foreground">Loading messages…</p>
+          <p className="text-sm text-text-3">Loading messages…</p>
         </div>
       ) : (
         <MessageList
@@ -161,6 +166,15 @@ export function ChatArea({ room, currentUserId, eventBus, viewerRoomRole }: Chat
         roomId={room.id}
         replyingTo={replyingTo}
         onClearReply={() => setReplyingTo(null)}
+        onSent={(msg) => {
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === msg.id)) return prev;
+            return [...prev, msg];
+          });
+          requestAnimationFrame(() => {
+            if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
+          });
+        }}
       />
     </div>
   );
