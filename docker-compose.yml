@@ -8,6 +8,7 @@ services:
       - SESSION_SECRET=local-dev-session-secret-at-least-32-chars
       - ENABLE_DEV_ROUTES=${ENABLE_DEV_ROUTES:-true}
       - AFK_IDLE_MS=${AFK_IDLE_MS:-60000}
+      - XMPP_AUTH_SECRET=${XMPP_AUTH_SECRET:-local-dev-xmpp-auth-secret-change}
     volumes:
       - ./files:/app/files
     depends_on:
@@ -36,5 +37,45 @@ services:
       retries: 5
       start_period: 10s
 
+  xmpp-a:
+    image: prosodyim/prosody:0.12
+    ports:
+      - "5222:5222"
+    volumes:
+      - ./prosody/xmpp-a.cfg.lua:/etc/prosody/prosody.cfg.lua:ro
+      - ./prosody/modules:/usr/lib/prosody/modules-extra:ro
+      - prosody-a-data:/var/lib/prosody
+    environment:
+      - XMPP_AUTH_SECRET=${XMPP_AUTH_SECRET:-local-dev-xmpp-auth-secret-change}
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "prosodyctl status || exit 1"]
+      interval: 10s
+      retries: 6
+      start_period: 30s
+
+  xmpp-b:
+    image: prosodyim/prosody:0.12
+    ports:
+      - "5322:5222"
+    volumes:
+      - ./prosody/xmpp-b.cfg.lua:/etc/prosody/prosody.cfg.lua:ro
+      - ./prosody/modules:/usr/lib/prosody/modules-extra:ro
+      - prosody-b-data:/var/lib/prosody
+    environment:
+      - XMPP_AUTH_SECRET=${XMPP_AUTH_SECRET:-local-dev-xmpp-auth-secret-change}
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "prosodyctl status || exit 1"]
+      interval: 10s
+      retries: 6
+      start_period: 30s
+
 volumes:
   pgdata:
+  prosody-a-data:
+  prosody-b-data:

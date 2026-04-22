@@ -58,4 +58,32 @@ Per `agent.md` ADR-7, the following are stub routes (return 501):
 
 Load testing (300 concurrent users, 10 000-message virtual scroll) is not included — see `agent.md` ADR-6 for the phased-scope rationale.
 
-Jabber protocol and federation (Requirements v3 §6) are explicitly out of scope.
+## Jabber (XMPP)
+
+Phase 13 adds two Prosody XMPP servers with HTTP-delegated auth and s2s federation.
+
+### Domains and ports
+
+| Domain   | Host port | Service | Seed user                       |
+|----------|-----------|---------|---------------------------------|
+| `xmpp-a` | 5222      | c2s     | `alice@xmpp-a` / `alicepass`   |
+| `xmpp-b` | 5322      | c2s     | `bob@xmpp-b` / `bobpass`       |
+
+### Connect a Jabber client
+
+Use Gajim, Dino, or Adium. Set the server to `localhost` with the port above. Log in as `alice@xmpp-a` (password `alicepass`) or `bob@xmpp-b` (password `bobpass`).
+
+### Smoke test
+
+```bash
+# Login test
+node phase-13/test-client.js localhost 5222 alice@xmpp-a alicepass
+
+# Federation: open a listener in one terminal
+node phase-13/test-client.js localhost 5322 bob@xmpp-b bobpass --listen
+
+# Send from another terminal
+node phase-13/test-client.js localhost 5222 alice@xmpp-a alicepass bob@xmpp-b "hello bob"
+```
+
+The listener prints the message and exits 0. Reverse direction works the same way.
