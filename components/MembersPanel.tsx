@@ -23,11 +23,12 @@ interface MembersPanelProps {
   currentUserId: string;
   onManage?: () => void;
   onInvite?: () => void;
+  onLeave?: () => void;
   friendStatusByUserId: Map<string, FriendStatus>;
   onFriendStatusChange: () => void;
 }
 
-export function MembersPanel({ roomId, room, members, currentUserId, onManage, onInvite, friendStatusByUserId, onFriendStatusChange }: MembersPanelProps) {
+export function MembersPanel({ roomId, room, members, currentUserId, onManage, onInvite, onLeave, friendStatusByUserId, onFriendStatusChange }: MembersPanelProps) {
   const [banTarget, setBanTarget] = useState<RoomMemberView | null>(null);
   const [banning, setBanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -169,21 +170,31 @@ export function MembersPanel({ roomId, room, members, currentUserId, onManage, o
         <Section label={`Members (${grouped.member.length})`} items={grouped.member} />
       </div>
 
-      <div className="flex gap-1.5 border-t border-border p-2.5">
-        {onInvite && (
+      <div className="flex flex-col gap-1.5 border-t border-border p-2.5">
+        <div className="flex gap-1.5">
+          {onInvite && (
+            <button
+              onClick={onInvite}
+              className="flex-1 rounded-lg border border-border px-2 py-1.5 text-[11px] font-medium text-text-2 transition-colors hover:border-primary hover:text-primary"
+            >
+              Invite
+            </button>
+          )}
+          {onManage && (
+            <button
+              onClick={onManage}
+              className="flex-1 rounded-lg bg-primary px-2 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-primary-hover"
+            >
+              Manage
+            </button>
+          )}
+        </div>
+        {onLeave && viewerRole !== "owner" && (
           <button
-            onClick={onInvite}
-            className="flex-1 rounded-lg border border-border px-2 py-1.5 text-[11px] font-medium text-text-2 transition-colors hover:border-primary hover:text-primary"
+            onClick={onLeave}
+            className="w-full rounded-lg border border-border px-2 py-1.5 text-[11px] font-medium text-unread transition-colors hover:border-unread hover:bg-[#FEF2F2]"
           >
-            Invite
-          </button>
-        )}
-        {onManage && (
-          <button
-            onClick={onManage}
-            className="flex-1 rounded-lg bg-primary px-2 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-primary-hover"
-          >
-            Manage
+            Leave Room
           </button>
         )}
       </div>

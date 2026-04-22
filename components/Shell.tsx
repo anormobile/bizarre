@@ -327,6 +327,14 @@ export function Shell({ initialMine, currentUserId, currentUsername, afkIdleMs }
     );
   }
 
+  async function handleLeaveRoom(roomId: number) {
+    const res = await fetch(`/api/rooms/${roomId}/leave`, { method: "POST" });
+    if (res.ok) {
+      setMine((prev) => prev.filter((r) => Number(r.id) !== Number(roomId)));
+      setSelectedRoomId((sel) => (sel != null && Number(sel) === Number(roomId) ? null : sel));
+    }
+  }
+
   function handleContactMessage(userId: string) {
     setSelectedDmUserId(userId);
     setSelectedRoomId(null);
@@ -363,6 +371,7 @@ export function Shell({ initialMine, currentUserId, currentUsername, afkIdleMs }
                   currentUserId={currentUserId}
                   onManage={() => setManageRoomOpen(true)}
                   onInvite={() => { setManageRoomOpen(true); }}
+                  onLeave={() => handleLeaveRoom(selectedRoom.id)}
                   friendStatusByUserId={friendStatusByUserId}
                   onFriendStatusChange={refetchFriendData}
                 />
