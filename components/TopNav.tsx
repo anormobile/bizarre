@@ -93,13 +93,6 @@ export function TopNav({ activeView, onViewChange, username, onSignOut, onChange
               <div className="text-xs text-text-3">@{username}</div>
             </div>
             <button
-              onClick={() => { setProfileOpen(false); }}
-              className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-[13px] text-text transition-colors hover:bg-bg"
-            >
-              <span className="text-[14px]">⚙</span>
-              Profile &amp; Settings
-            </button>
-            <button
               onClick={() => { onChangePassword(); setProfileOpen(false); }}
               className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-[13px] text-text transition-colors hover:bg-bg"
             >
