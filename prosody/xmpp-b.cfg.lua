@@ -7,7 +7,7 @@ modules_enabled = {
   "roster"; "saslauth"; "dialback"; "disco";
   "carbons"; "pep"; "private"; "blocklist"; "vcard4"; "vcard_legacy";
   "version"; "uptime"; "time"; "ping"; "register";
-  "http"; "admin_adhoc";
+  "http"; "admin_adhoc"; "http_admin_api";
 }
 
 allow_registration = false

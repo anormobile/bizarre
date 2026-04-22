@@ -350,7 +350,6 @@ Modals: `CreateRoomModal`, `ManageRoomModal`, `PublicRoomsModal`, `AddContactMod
 
 ### Out of scope (will not build)
 
-- Jabber admin dashboard (§6.3)
 - Password reset email flow — stub route only
 - Account deletion cascade — stub route only
 - View banned users list UI with who-banned-each
@@ -396,6 +395,7 @@ Modals: `CreateRoomModal`, `ManageRoomModal`, `PublicRoomsModal`, `AddContactMod
 Decision: Core build skipped Jabber and federation. Phase 13 (post-core, branch phase-13-jabber) adds §6.1 and §6.2 as a bonus layer.
 Reason: 2-day window blocked §6 during core. Post-core branch is isolated and revertable.
 Trade-off: docker-compose grows from 2 services to 4.
+§6.3 admin dashboard shipped in the same phase by Executor 2.
 
 ### ADR-6: Phased scope — AFK, multi-tab, copy-paste are stretch
 **Decision**: Core = online/offline, single-tab, button upload. AFK, multi-tab, copy-paste added only after core green.
