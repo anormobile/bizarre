@@ -15,6 +15,7 @@ const envSchema = z.object({
     .optional()
     .transform((v) => v === "true"),
   AFK_IDLE_MS: z.coerce.number().default(60_000),
+  XMPP_AUTH_SECRET: z.string().min(16, "XMPP_AUTH_SECRET must be at least 16 characters").optional(),
 });
 
 type Env = z.infer<typeof envSchema>;

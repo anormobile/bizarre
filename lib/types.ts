@@ -256,6 +256,13 @@ export interface DmThreadView {
   lastActivityAt: string;
 }
 
+export interface JabberConnection {
+  jid: string;
+  domain: string;
+  remoteIp: string;
+  since: string;
+}
+
 export interface RoomMemberView {
   userId: string;
   username: string;

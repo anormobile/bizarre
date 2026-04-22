@@ -28,6 +28,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/ws": "^8.18.1",
+    "@xmpp/client": "^0.13.6",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

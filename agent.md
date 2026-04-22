@@ -350,9 +350,6 @@ Modals: `CreateRoomModal`, `ManageRoomModal`, `PublicRoomsModal`, `AddContactMod
 
 ### Out of scope (will not build)
 
-- Jabber protocol support (Requirements v3 §6.1)
-- Federation between servers (§6.2)
-- Jabber admin dashboard (§6.3)
 - Password reset email flow — stub route only
 - Account deletion cascade — stub route only
 - View banned users list UI with who-banned-each
@@ -395,9 +392,10 @@ Modals: `CreateRoomModal`, `ManageRoomModal`, `PublicRoomsModal`, `AddContactMod
 **Trade-off**: Presence lost on app restart until users reconnect.
 
 ### ADR-5: Skip Jabber and federation
-**Decision**: Build only §1–§5 of Requirements v3.
-**Reason**: Out of scope for 2-day window. Federation needs multi-container compose.
-**Trade-off**: No stretch-goal bonus from §6.
+Decision: Core build skipped Jabber and federation. Phase 13 (post-core, branch phase-13-jabber) adds §6.1 and §6.2 as a bonus layer.
+Reason: 2-day window blocked §6 during core. Post-core branch is isolated and revertable.
+Trade-off: docker-compose grows from 2 services to 4.
+§6.3 admin dashboard shipped in the same phase by Executor 2.
 
 ### ADR-6: Phased scope — AFK, multi-tab, copy-paste are stretch
 **Decision**: Core = online/offline, single-tab, button upload. AFK, multi-tab, copy-paste added only after core green.
