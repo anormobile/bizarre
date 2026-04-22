@@ -28,6 +28,10 @@ export default function LoginPage() {
         setError(data.error ?? "Login failed");
         return;
       }
+      if (data.sessionCookie) {
+        const { name, value, maxAge } = data.sessionCookie;
+        document.cookie = `${name}=${value}; path=/; max-age=${maxAge}; samesite=lax`;
+      }
       window.location.href = "/";
       return;
     } catch {

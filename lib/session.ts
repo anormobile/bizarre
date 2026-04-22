@@ -66,6 +66,13 @@ export function verifySessionCookie(cookieValue: string): string | null {
   return mismatch === 0 ? sessionId : null;
 }
 
+export function getSessionCookieConfig() {
+  return {
+    name: env.SESSION_COOKIE_NAME,
+    maxAge: env.SESSION_MAX_AGE_SECONDS,
+  };
+}
+
 /** Set the session cookie on the current response. */
 export async function setSessionCookie(sessionId: string): Promise<void> {
   const cookieStore = await cookies();
