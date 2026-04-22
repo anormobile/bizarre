@@ -4,6 +4,7 @@ import { Avatar } from "@/components/Avatar";
 import { PresenceDot } from "@/components/PresenceDot";
 import { usePresence } from "@/hooks/usePresence";
 import { AddContactModal } from "@/components/friends/AddContactModal";
+import { FriendRequestsModal } from "@/components/friends/FriendRequestsModal";
 import type { FriendView, FriendRequestView } from "@/lib/types";
 
 interface ContactsViewProps {
@@ -68,12 +69,38 @@ export function ContactsView({
     );
   }
 
+  function handleAccepted(friend: FriendView) {
+    onFriendsChange(
+      friends.some((f) => f.userId === friend.userId)
+        ? friends
+        : [...friends, friend].sort((a, b) => a.username.localeCompare(b.username)),
+    );
+    onIncomingChange(incoming.filter((r) => r.userId !== friend.userId));
+  }
+
+  function handleDeclined(userId: string) {
+    onIncomingChange(incoming.filter((r) => r.userId !== userId));
+  }
+
+  function handleCancelledOutgoing(userId: string) {
+    onOutgoingChange(outgoing.filter((r) => r.userId !== userId));
+  }
+
   return (
     <div className="flex-1 overflow-y-auto p-7">
       <div className="max-w-[560px]">
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-xl font-extrabold tracking-tight">Contacts</h2>
-          <AddContactModal onSent={handleRequestSent} onAutoAccepted={handleAutoAccepted} />
+          <div className="flex items-center gap-2">
+            <FriendRequestsModal
+              incoming={incoming}
+              outgoing={outgoing}
+              onAccepted={handleAccepted}
+              onDeclined={handleDeclined}
+              onCancelledOutgoing={handleCancelledOutgoing}
+            />
+            <AddContactModal onSent={handleRequestSent} onAutoAccepted={handleAutoAccepted} />
+          </div>
         </div>
 
         {friends.length === 0 && (
