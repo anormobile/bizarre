@@ -45,3 +45,23 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# playwright mcp session dumps
+/.playwright-mcp/
+
+# root debug screenshots (keep only public/ images)
+/*.png
+/*.jpg
+/*.jpeg
+/*.gif
+
+# local dev artifacts — dev-time notes, not for review
+/issues.md
+/not-implemented.md
+/qa-report.md
+/validation-progress.md
+/jar.txt
+
+# user-uploaded attachments (persisted at runtime via docker volume)
+/files/attachments/*
+!/files/attachments/.gitkeep
